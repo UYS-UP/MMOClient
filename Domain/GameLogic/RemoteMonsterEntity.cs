@@ -6,7 +6,7 @@ public class RemoteMonsterEntity : EntityBase
     protected override void SetupComponents()
     {
         AddEntityComponent(new RemoteMoveComponent());
-        AddEntityComponent(new AnimatorComponent(GetComponent<Animator>()));
+        AddEntityComponent(new AnimatorComponent(GetComponentInChildren<Animator>()));
         AddEntityComponent(new LocalSkillComponent());
     }
     

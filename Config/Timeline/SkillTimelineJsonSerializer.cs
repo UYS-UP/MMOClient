@@ -21,6 +21,7 @@ public static class SkillTimelineJsonSerializer
         settings.Converters.Add(new Vector3Converter());
         settings.Converters.Add(new Vector2Converter());
         settings.Converters.Add(new AnimationCurveConverter());
+        settings.Converters.Add(new QuaternionConverter());
 
         settings.SerializationBinder = new AliasBinder(new[]
         {

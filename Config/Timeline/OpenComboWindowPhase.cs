@@ -8,7 +8,7 @@ public class OpenComboWindowPhase : SkillPhase
     
     public override void OnStart(EntityBase caster)
     {
-        Debug.Log("开启连击窗口,下一段攻击");
+        if(!caster.IsLocal) return;
         var ctx = caster.FSM.Ctx;
         ctx.ComboWindowOpen = true;
         ctx.ComboNextSkillId = Next;
@@ -16,6 +16,7 @@ public class OpenComboWindowPhase : SkillPhase
 
     public override void OnExit(EntityBase caster)
     {
+        if(!caster.IsLocal) return;
         Debug.Log("关闭连击窗口");
         var ctx = caster.FSM.Ctx;
         ctx.ComboWindowOpen = false;

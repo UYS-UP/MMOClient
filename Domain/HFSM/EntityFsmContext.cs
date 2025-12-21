@@ -30,13 +30,18 @@ public class EntityFsmContext
                 CastRequested = true;
                 CastSkillId = skillId;
         }
+
+        public void RemoteRequestCast(int skillId)
+        {
+                CastRequested = true;
+                CastSkillId = skillId;
+        }
         
 
         public void ConsumeOneFrameFlags()
         {
                 HitRequested = false;
                 DeathRequested = false;
-                CastRequested = false;
         }
 
         public EntityFsmContext(EntityBase entity)

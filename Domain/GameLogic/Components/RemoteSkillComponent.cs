@@ -14,25 +14,11 @@ public class RemoteSkillComponent : BaseComponent
     {
 
     }
+
+    public void CastSkill(int skillId)
+    {
+        Debug.Log("Remote CastSkill" + skillId);
+        entity.FSM.Ctx.RemoteRequestCast(skillId);
+    }
     
-    public void PlayFromServer(int skillId)
-    {
-        if (entity == null) return;
-
-        // 找 timeline 配置
-        if (!GameContext.Instance.SkillTimelineConfig.TryGetValue(skillId, out var timeline))
-        {
-            Debug.LogWarning($"RemoteSkillComponent: timeline not found skillId={skillId}");
-            return;
-        }
-        
-        Interrupt();
-        
-    }
-
-    public void Interrupt()
-    {
-
-       
-    }
 }

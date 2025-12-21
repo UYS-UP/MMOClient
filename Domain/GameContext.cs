@@ -16,7 +16,7 @@ public class GameContext : SingletonMono<GameContext>
     protected override void Awake()
     {
         base.Awake();
-        SkillTimelineJsonSerializer.Deserializer("D:\\Project\\UnityDemo\\MMORPG\\Assets\\Generated\\SkillTimelineConfig.json");
+        SkillTimelineJsonSerializer.Deserializer("D:\\Project\\UnityDemo\\MMORPGClient\\Assets\\Generated\\SkillTimelineConfig.json");
         DontDestroyOnLoad(MainCamera);
         Register(new QuestModel());
         Register(new StorageModel());

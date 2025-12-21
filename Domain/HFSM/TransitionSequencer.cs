@@ -34,6 +34,7 @@ public class TransitionSequencer
         var exitChain = StatesToExit(from, lca);
         var enterChain = StatesToEnter(to, lca);
 
+        
         var exitSteps = GatherPhaseSteps(exitChain, Phase.Deactivate);
         sequence = UseSequential ? new SequentialPhase(exitSteps, cts.Token) : new ParallelPhase(exitSteps, cts.Token);
         sequence.Start();

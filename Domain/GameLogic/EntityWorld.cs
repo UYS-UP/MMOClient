@@ -137,15 +137,15 @@ public class EntityWorld : MonoBehaviour
     # endregion
     
     # region 移动同步
-    private void OnExecutePlayerMoveEvent(ServerPlayerMoveSync sync)
+    private void OnExecutePlayerMoveEvent(ServerPlayerMoveSync data)
     {
-        if (!entityModel.TryGetEntity(sync.EntityId, out var e)) return;
-        e.NetworkEntity.Position = HelperUtility.ShortArrayToVector3(sync.Position);
-        e.NetworkEntity.Yaw = HelperUtility.ShortToYaw(sync.Yaw);
-        e.NetworkEntity.Direction = HelperUtility.SbyteArrayToVector3(sync.Direction);
-        e.NetworkEntity.Speed = sync.Speed;
+        if (!entityModel.TryGetEntity(data.EntityId, out var e)) return;
+        e.NetworkEntity.Position = HelperUtility.ShortArrayToVector3(data.Position);
+        e.NetworkEntity.Yaw = HelperUtility.ShortToYaw(data.Yaw);
+        e.NetworkEntity.Direction = HelperUtility.SbyteArrayToVector3(data.Direction);
+        e.NetworkEntity.Speed = data.Speed;
         
-        e.GetEntityComponent<LocalMoveComponent>().ReconcileTo(sync.IsValid, sync.ClientTick);
+        e.GetEntityComponent<LocalMoveComponent>().ReconcileTo(data.IsValid, data.ClientTick);
     }
     
     private void OnExecuteEntityMoveEvent(ServerEntityMoveSync data)
@@ -158,8 +158,7 @@ public class EntityWorld : MonoBehaviour
         e.NetworkEntity.Position = HelperUtility.ShortArrayToVector3(data.Position);
         e.NetworkEntity.Yaw = HelperUtility.ShortToYaw(data.Yaw);
         e.NetworkEntity.Direction = HelperUtility.SbyteArrayToVector3(data.Direction);
-        e.NetworkEntity.Motion = data.Motion;
-        e.NetworkEntity.Action = data.Action;
+        e.NetworkEntity.State = data.State;
         e.NetworkEntity.Speed = data.Speed;
         
         e.GetEntityComponent<RemoteMoveComponent>()
@@ -171,20 +170,14 @@ public class EntityWorld : MonoBehaviour
     private void OnExecuteEntityReleaseSkillEvent(ServerEntityReleaseSkill data)
     {
         if(!entityModel.TryGetEntity(data.ReleaserId, out var e)) return;
-        if (e.IsLocal)
-        {
-           //  entityModel.LocalEntity.GetEntityComponent<SkillComponent>().CastSkill(data.SkillId, true);
-            return;
-        }
         // 先更新位置和方向
         e.NetworkEntity.Position = HelperUtility.ShortArrayToVector3(data.Position);
         e.NetworkEntity.Yaw = HelperUtility.ShortToYaw(data.Yaw);
         e.NetworkEntity.Direction = Vector3.zero;
     
         e.GetEntityComponent<RemoteMoveComponent>().OnNetUpdate(data.Tick);
-    
-        // 先创建技能实例，再切换状态
-       //  e.GetEntityComponent<SkillComponent>().CastSkill(data.SkillId);
+        Debug.Log(e.EntityId);
+        e.GetEntityComponent<RemoteSkillComponent>().CastSkill(data.SkillId);
     }
 
     private void OnExecutePlayerReleaseSkillEvent(ServerPlayerReleaseSkill data)

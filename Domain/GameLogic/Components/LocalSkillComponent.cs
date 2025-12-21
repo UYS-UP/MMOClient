@@ -89,16 +89,7 @@ public class LocalSkillComponent : BaseComponent
 
         skillModel?.CastSkill(skillId, true);
         ctx.RequestCast(skillId);
-        // pendingLocalSkillId = skillId;
-        // pendingClientTick = TickService.Instance.ClientTick;
-        //
-        // var payload = new ClientPlayerReleaseSkill
-        // {
-        //     SkillId = skillId,
-        //     ClientTick = pendingClientTick,
-        //     InputType = SkillCastInputType.None
-        // };
-        // GameClient.Instance.Send(Protocol.PlayerReleaseSkill, payload);
+
     }
     
     private int MapActionToSkillId(PlayerAction action)

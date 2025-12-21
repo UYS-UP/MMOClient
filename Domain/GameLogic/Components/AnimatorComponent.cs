@@ -33,6 +33,11 @@ public class AnimatorComponent : BaseComponent
         animator.CrossFade(state, duration);
     }
 
+    public void CrossFadeInFixedTime(string state, float duration)
+    {
+        animator.CrossFadeInFixedTime(state, duration);
+    }
+
     public void Play(string state)
     {
         animator.Play(state);

@@ -48,7 +48,13 @@ public class AliveState : HState
     {
         if (ctx.DeathRequested) return Parent.AsTo<RootState>()?.Dead;
         if (ctx.HitRequested) return Hit;
-        if(ctx.CastRequested) return CastSkill;
+        if (ctx.CastRequested)
+        {
+            if (CastSkill == null || ctx.CastSkill == null || ctx.CastSkill.IsFinished)
+            {
+                return CastSkill;
+            }
+        }
         return null;
     }
 
@@ -109,7 +115,7 @@ public class IdleState : HState
         Debug.Log("Enter: " + HStateMachine.StatePath(this));
         ctx.LockMove = false;
         ctx.LockTurn = false;
-        ctx.Animator.CrossFade("Idle", 0.25f);
+        ctx.Animator.CrossFade("Idle", 0.1f);
     }
 
     protected override HState GetTransition() => ctx.HasMoveInput ? Parent.AsTo<LocomotionState>()?.Move : null;
@@ -121,6 +127,7 @@ public class MoveState : HState
     public MoveState(EntityFsmContext ctx, HStateMachine machine, HState parent) : base(machine, parent)
     {
         this.ctx = ctx;
+        Add(new MoveAnimationActivity(ctx));
     }
     
     protected override void OnEnter()
@@ -128,7 +135,7 @@ public class MoveState : HState
         Debug.Log("Enter: " + HStateMachine.StatePath(this));
         ctx.LockMove = false;
         ctx.LockTurn = false;
-        ctx.Animator.CrossFade("Move", 0.25f);
+        // ctx.Animator.CrossFadeInFixedTime("Move", 0.1f);
  
     }
     
@@ -147,9 +154,10 @@ public class CastSkillState : HState
 
     protected override void OnEnter()
     {
-        Debug.Log("Enter: " + HStateMachine.StatePath(this));
+
         ctx.LockMove = true;
         ctx.LockTurn = false;
+    
 
         int skillId = ctx.CastSkillId;
         ctx.CastRequested = false;
@@ -161,17 +169,38 @@ public class CastSkillState : HState
     {
         ctx.CastSkill?.Update(deltaTime);
 
-        bool wantCombo = ctx.ComboRequested;
-        ctx.ComboRequested = false; // 严格窗口：不缓冲
 
-        if (ctx.ComboWindowOpen && wantCombo && ctx.ComboNextSkillId >= 0)
+        if (ctx.Entity.IsLocal)
         {
-            int nextId = ctx.ComboNextSkillId;
+            bool wantCombo = ctx.ComboRequested;
+            ctx.ComboRequested = false; // 严格窗口：不缓冲
 
-            ctx.CastSkill?.Interrupt(); // 会触发 Phase OnEnd，窗口会被关掉（保险）
-            ctx.CastSkill = new SkillInstance(nextId, ctx.Entity);
-            ctx.CastSkill.Start();
+            if (ctx.ComboWindowOpen && wantCombo && ctx.ComboNextSkillId >= 0)
+            {
+                int nextId = ctx.ComboNextSkillId;
+
+                ctx.CastSkill?.Interrupt();
+                ctx.CastSkill = new SkillInstance(nextId, ctx.Entity);
+            
+                ctx.CastSkill.Start();
+
+            }
         }
+        else
+        {
+            if (ctx.CastRequested)
+            {
+
+                int nextId = ctx.CastSkillId;
+                ctx.CastRequested = false;
+                ctx.CastSkill?.Interrupt();
+                ctx.CastSkill = new SkillInstance(nextId, ctx.Entity);
+            
+                ctx.CastSkill.Start();
+            }
+        }
+        
+
     }
 
     protected override void OnExit()

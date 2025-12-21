@@ -24,7 +24,7 @@ public class ServerEntityReleaseSkill : TickMessage
     [Key(2)] public int SkillId;
     [Key(3)] public short[] Position;
     [Key(4)] public short Yaw;
-    [Key(5)] public EntityStateType State;
+    [Key(5)] public EntityState State;
 }
 
 [MessagePackObject]
@@ -32,7 +32,7 @@ public class ServerPlayerReleaseSkill : TickMessage
 {
     [Key(1)] public int ClientTick;
     [Key(2)] public int SkillId;
-    [Key(3)] public EntityStateType State;
+    [Key(3)] public EntityState State;
     [Key(4)] public bool Success;
     [Key(5)] public string Message;
 }
@@ -62,8 +62,7 @@ public class ServerEntityMoveSync : TickMessage
     [Key(3)] public short[] Position;
     [Key(4)] public short Yaw;
     [Key(5)] public sbyte[] Direction;
-    [Key(6)] public MotionStateType Motion;
-    [Key(7)] public ActionStateType Action;
+    [Key(6)] public EntityState State;
     [Key(8)] public float Speed;
 }
 

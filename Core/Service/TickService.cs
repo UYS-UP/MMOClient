@@ -28,6 +28,16 @@ public sealed class TickService : SingletonMono<TickService>
         }
     }
 
+    // 连续的客户端 Tick（带小数），用于渲染时连续插值
+    public double ClientTickExact
+    {
+        get
+        {
+            double now = stopwatch.ElapsedMilliseconds;
+            return now / (double)tickIntervalMs;
+        }
+    }
+
     // === 平滑估计 ===
     public double estRttMs;
     private double estClockOffsetMs;
@@ -87,36 +97,41 @@ public sealed class TickService : SingletonMono<TickService>
         long clientRecvUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
         double rtt = clientRecvUtcMs - pong.EchoClientUtcMs;
+        // RTT 平滑
         estRttMs = estRttMs <= 0 ? rtt : (1 - ALPHA_SLOW) * estRttMs + ALPHA_SLOW * rtt;
 
-        double offsetMs = pong.ServerUtcMs - (pong.EchoClientUtcMs + rtt / 2.0);
-        estClockOffsetMs = (1 - ALPHA_SLOW) * estClockOffsetMs + ALPHA_SLOW * offsetMs;
-        double clientTick = ClientTick64;
+        // 计算当前时刻 Server 的预估 Tick
+        double serverTimeMs = pong.ServerUtcMs + rtt / 2.0;
+        double expectedServerTick = pong.Tick + (rtt / 2.0) / tickIntervalMs;
 
-        double serverTickEstimate = pong.Tick;
-        double rawDelta = serverTickEstimate - clientTick;
-        
+        double currentClientTick = ClientTick64;
+        double tickOffset = expectedServerTick - currentClientTick;
+
         if (!tickOffsetInitialized)
         {
-            estTickOffset = rawDelta;
+            estTickOffset = tickOffset;
             tickOffsetInitialized = true;
         }
         else
         {
-            double diff = rawDelta - estTickOffset;
-            double maxStep = 1;
-            if (diff > maxStep) diff = maxStep;
-            if (diff < -maxStep) diff = -maxStep;
-
-            estTickOffset += diff;
-        }
+            double diff = tickOffset - estTickOffset;
+            
+            double maxStep = 0.05; 
         
-        // double jitterGuard = 20;
-        // int delayTicks = (int)Math.Ceiling((estRttMs * 0.5 + jitterGuard) / tickIntervalMs);
-        // InterpDelayTicks = Mathf.Clamp(delayTicks, 3, 10);
+            if (Math.Abs(diff) > 100) 
+            {
+                estTickOffset = tickOffset;
+            }
+            else
+            {
+                if (diff > maxStep) diff = maxStep;
+                if (diff < -maxStep) diff = -maxStep;
+                estTickOffset = Mathf.Lerp((float)estTickOffset, (float)(estTickOffset + diff), 0.1f);
+            }
+        }
     }
     
-    private double ServerTickExact => ClientTick64 + estTickOffset;
+    private double ServerTickExact => ClientTickExact + estTickOffset;
     public double RenderTickExact => ServerTickExact - InterpDelayTicks;
     public int RenderTick => (int)Math.Max(0, Math.Floor(RenderTickExact));
 }

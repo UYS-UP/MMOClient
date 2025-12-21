@@ -14,12 +14,11 @@ public abstract class NetworkEntity
     [Key(1)] public string RegionId { get; set; }
     [Key(2)] public string DungeonId { get; set; }
     [Key(3)] public EntityType EntityType { get; set; }
-    [Key(4)] public MotionStateType Motion { get; set; }
-    [Key(5)] public ActionStateType Action { get; set; }
-    [Key(6)] public Vector3 Position { get; set; }
-    [Key(7)] public float Yaw { get; set; }
-    [Key(8)] public Vector3 Direction { get; set; }
-    [Key(9)] public float Speed { get; set; }
+    [Key(4)] public EntityState State { get; set; }
+    [Key(5)] public Vector3 Position { get; set; }
+    [Key(6)] public float Yaw { get; set; }
+    [Key(7)] public Vector3 Direction { get; set; }
+    [Key(8)] public float Speed { get; set; }
 
 
 }

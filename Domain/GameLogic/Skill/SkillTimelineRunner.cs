@@ -15,7 +15,7 @@ public class SkillTimelineRunner
     private int nextPhaseStartIndex;
     private readonly List<SkillPhase> activePhases = new();
 
-    const float EPS = 0.001f;
+    const float EPS = 0.000001f;
     
     public SkillTimelineRunner(float duration, IEnumerable<SkillEvent> events = null, IEnumerable<SkillPhase> phases = null)
     {
@@ -34,7 +34,7 @@ public class SkillTimelineRunner
         }
     }
     
- public void Start(EntityBase caster)
+    public void Start(EntityBase caster)
     {
         FireDueEvents(caster, 0f);
         StartDuePhases(caster, 0f);

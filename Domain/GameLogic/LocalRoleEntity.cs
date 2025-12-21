@@ -11,7 +11,7 @@ public class LocalRoleEntity : EntityBase
         AddEntityComponent(new CameraComponent(GameContext.Instance.MainCamera));
 
         AddEntityComponent(new LocalMoveComponent());
-        AddEntityComponent(new AnimatorComponent(GetComponent<Animator>()));
+        AddEntityComponent(new AnimatorComponent(GetComponentInChildren<Animator>()));
         
         AddEntityComponent(new LocalSkillComponent());
 

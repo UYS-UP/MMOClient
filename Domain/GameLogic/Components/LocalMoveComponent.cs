@@ -18,9 +18,8 @@ public class LocalMoveComponent : BaseComponent
 
     private int lastSentTick;
     private readonly Queue<Snapshot> snapshots = new Queue<Snapshot>();
-    private const int SEND_EVERY_TICKS = 3;
+    private const int SEND_EVERY_TICKS = 0;
     
-    private MotionStateType lastSentMotionState;
     private float lastSentYaw;
     private Vector3 lastSentDir;
 
@@ -36,8 +35,7 @@ public class LocalMoveComponent : BaseComponent
 
         lastSentTick = TickService.Instance.ClientTick;
         velocity = Vector3.zero;
-
-        lastSentMotionState = MotionStateType.Idle;
+        
         lastSentYaw = 0f;
         lastSentDir = Vector3.zero;
     }
@@ -82,8 +80,7 @@ public class LocalMoveComponent : BaseComponent
             TargetYaw = newYaw;
         }
         
-        entity.FSM.Ctx.HasMoveInput = hasInput;
-        entity.FSM.Ctx.WishDir = wishDir;
+
         
         float speed = entity.NetworkEntity.Speed + 1;
         Vector3 targetHorizontalVelocity = hasInput
@@ -107,34 +104,29 @@ public class LocalMoveComponent : BaseComponent
         
       
 
-        // var snapshot = new Snapshot
-        // {
-        //     Tick = currentTick,
-        //     Pos = entity.transform.position,
-        //     Yaw = entity.transform.eulerAngles.y,
-        //     Speed = speed,
-        //     Dir = wishDir,
-        //     MotionState = MotionStateType.Move,
-        //     ActionState = actionState,
-        // };
-        // entity.CurrentSnapshot = snapshot;
-        //
-        // // ✅ 发包判定：修复“刚赋值就比较”的问题
-        // bool motionChanged = motionState != lastSentMotionState;
-        // bool yawChanged = Mathf.Abs(Mathf.DeltaAngle(lastSentYaw, snapshot.Yaw)) > 1f;
-        // bool dirChanged = (snapshot.Dir - lastSentDir).sqrMagnitude > 0.0004f;
-        //
-        // if (currentTick > lastSentTick + SEND_EVERY_TICKS || motionChanged || yawChanged || dirChanged)
-        // {
-        //     SendInput(snapshot.Yaw, wishDir, currentTick);
-        //     lastSentTick = currentTick;
-        //     lastSentMotionState = motionState;
-        //     lastSentYaw = snapshot.Yaw;
-        //     lastSentDir = snapshot.Dir;
-        // }
-        //
-        // snapshots.Enqueue(snapshot);
-        // while (snapshots.Count > 4096) snapshots.Dequeue();
+        var snapshot = new Snapshot
+        {
+            Tick = currentTick,
+            Pos = entity.transform.position,
+            Yaw = entity.transform.eulerAngles.y,
+            Speed = speed,
+            Dir = wishDir,
+        };
+        
+        entity.FSM.Ctx.HasMoveInput = hasInput;
+        entity.FSM.Ctx.WishDir = wishDir;
+        entity.CurrentSnapshot = snapshot;
+        
+        if (currentTick > lastSentTick + SEND_EVERY_TICKS)
+        {
+            SendInput(snapshot.Yaw, wishDir, currentTick);
+            lastSentTick = currentTick;
+            lastSentYaw = snapshot.Yaw;
+            lastSentDir = snapshot.Dir;
+        }
+        
+        snapshots.Enqueue(snapshot);
+        while (snapshots.Count > 4096) snapshots.Dequeue();
     }
 
 

@@ -4,22 +4,17 @@ using UnityEngine;
 public class RemoteMoveComponent : BaseComponent
 {
     private EntityBase entity;
+    private readonly List<Snapshot> snapshotBuffer = new List<Snapshot>(64);
 
-    private readonly List<Snapshot> snapshotBuffer = new List<Snapshot>(32);
-
-    // 逻辑插值后的目标位置/朝向
-    private Vector3 logicPos;
-    private float logicYaw;
-
-    // 实际渲染的位置/朝向（加平滑）
     private Vector3 visualPos;
     private float visualYaw;
     private bool initialized;
-    private Vector3 lastNetPos;
-    private bool hasLastNetPos;
 
     private const int MAX_BUFFER_SIZE = 64;
-    private const int MAX_LEAD_TICKS = 2;
+    private const int INTERP_DELAY_TICKS = 2;    // 本地低延迟下缩小插值延迟
+    private const int EXTRAPOLATE_MAX_TICKS = 3; // 最多外推 ~60ms（@50Hz）
+    private const float HARD_SNAP_DIST = 2.0f;   // 大偏差硬贴合
+    private const float MICRO_SNAP_DIST = 0.03f; // 微小偏差直接贴合
 
     public override void Attach(EntityBase e)
     {
@@ -30,39 +25,15 @@ public class RemoteMoveComponent : BaseComponent
 
     public void OnNetUpdate(int serverTick)
     {
-        Vector3 pos = entity.NetworkEntity.Position;
-        float yaw = entity.NetworkEntity.Yaw;
-        Vector3 dir = entity.NetworkEntity.Direction;
-
-        // 推导 motion：用网络两点差（也可以用 dir）
-        MotionStateType motion = MotionStateType.Idle;
-        if (hasLastNetPos)
-        {
-            float distSqr = (pos - lastNetPos).sqrMagnitude;
-            if (distSqr > 0.0001f) motion = MotionStateType.Move;
-        }
-        else
-        {
-            // 第一次没有 last，先用 dir 推导
-            if (dir.sqrMagnitude > 0.01f) motion = MotionStateType.Move;
-        }
-        lastNetPos = pos;
-        hasLastNetPos = true;
-        
-        ActionStateType action = entity.NetworkEntity.Action;
-
         var snap = new Snapshot
         {
             Tick = serverTick,
-            Pos = pos,
-            Yaw = yaw,
-            Dir = dir,
+            Pos = entity.NetworkEntity.Position,
+            Yaw = entity.NetworkEntity.Yaw,
+            Dir = entity.NetworkEntity.Direction,
             Speed = entity.NetworkEntity.Speed,
-            MotionState = motion,
-            ActionState = action,
         };
 
-        // 插入 buffer（递增顺序）
         if (snapshotBuffer.Count == 0 || serverTick >= snapshotBuffer[^1].Tick)
         {
             snapshotBuffer.Add(snap);
@@ -70,99 +41,128 @@ public class RemoteMoveComponent : BaseComponent
         else
         {
             int i = snapshotBuffer.Count - 1;
-            while (i >= 0 && serverTick < snapshotBuffer[i].Tick)
-                i--;
+            while (i >= 0 && serverTick < snapshotBuffer[i].Tick) i--;
             snapshotBuffer.Insert(i + 1, snap);
         }
 
         if (snapshotBuffer.Count > MAX_BUFFER_SIZE)
         {
-            int removeCount = snapshotBuffer.Count - MAX_BUFFER_SIZE;
-            snapshotBuffer.RemoveRange(0, removeCount);
+            snapshotBuffer.RemoveRange(0, snapshotBuffer.Count - MAX_BUFFER_SIZE);
         }
 
-        entity.CurrentSnapshot = snap;
+        if (!initialized && snapshotBuffer.Count > 0)
+        {
+            initialized = true;
+            visualPos = entity.NetworkEntity.Position;
+            visualYaw = entity.NetworkEntity.Yaw;
+            entity.transform.position = visualPos;
+            entity.transform.rotation = Quaternion.Euler(0, visualYaw, 0);
+        }
     }
 
     public override void UpdateEntity(float dt)
     {
-        if (snapshotBuffer.Count == 0 || entity == null)
-            return;
+        if (snapshotBuffer.Count == 0 || entity == null) return;
 
-        if (!initialized)
-        {
-            initialized = true;
-            logicPos = entity.transform.position;
-            visualPos = logicPos;
-            logicYaw = entity.transform.rotation.eulerAngles.y;
-            visualYaw = logicYaw;
-        }
-        
-        double renderTick = TickService.Instance.RenderTickExact;
-
-        while (snapshotBuffer.Count >= 2 &&
-               snapshotBuffer[1].Tick <= renderTick - MAX_LEAD_TICKS)
+        double renderTick = TickService.Instance.RenderTickExact - INTERP_DELAY_TICKS;
+   
+        while (snapshotBuffer.Count >= 2 && snapshotBuffer[1].Tick <= renderTick)
         {
             snapshotBuffer.RemoveAt(0);
         }
 
-        if (snapshotBuffer.Count == 0)
-            return;
-        
-        if (renderTick <= snapshotBuffer[0].Tick)
+        Snapshot logicSnap = CalculateInterpolation(renderTick);
+
+        float posErrSqr = (visualPos - logicSnap.Pos).sqrMagnitude;
+        if (!initialized || posErrSqr > HARD_SNAP_DIST * HARD_SNAP_DIST || posErrSqr < MICRO_SNAP_DIST * MICRO_SNAP_DIST)
         {
-            logicPos = snapshotBuffer[0].Pos;
-            logicYaw = snapshotBuffer[0].Yaw;
+            visualPos = logicSnap.Pos;
         }
         else
         {
-            int idx = 0;
-            while (idx < snapshotBuffer.Count && snapshotBuffer[idx].Tick < renderTick)
-                idx++;
-
-            if (idx >= snapshotBuffer.Count)
-            {
-                logicPos = snapshotBuffer[^1].Pos;
-                logicYaw = snapshotBuffer[^1].Yaw;
-            }
-            else
-            {
-                var nextSnap = snapshotBuffer[idx];
-                var prevSnap = snapshotBuffer[idx - 1];
-
-                int prevTick = prevSnap.Tick;
-                int nextTick = nextSnap.Tick;
-                int tickDelta = nextTick - prevTick;
-
-                if (tickDelta <= 0)
-                {
-                    logicPos = nextSnap.Pos;
-                    logicYaw = nextSnap.Yaw;
-                }
-                else
-                {
-                    if (renderTick >= nextTick)
-                        renderTick = nextTick - 0.001;
-
-                    float t = (float)((renderTick - prevTick) / tickDelta);
-                    t = Mathf.Clamp01(t);
-
-                    logicPos = Vector3.Lerp(prevSnap.Pos, nextSnap.Pos, t);
-                    logicYaw = Mathf.LerpAngle(prevSnap.Yaw, nextSnap.Yaw, t);
-                }
-            }
+            visualPos = logicSnap.Pos;
         }
-        
-        float posSharpness = 20f;
-        float rotSharpness = 20f;
 
-        float posBlend = 1f - Mathf.Exp(-posSharpness * dt);
-        float rotBlend = 1f - Mathf.Exp(-rotSharpness * dt);
-
-        visualPos = Vector3.Lerp(visualPos, logicPos, posBlend);
-        visualYaw = Mathf.LerpAngle(visualYaw, logicYaw, rotBlend);
+        visualYaw = logicSnap.Yaw;
 
         entity.transform.position = visualPos;
-        entity.transform.rotation = Quaternion.Euler(0f, visualYaw, 0f);
+        entity.transform.rotation = Quaternion.Euler(0, visualYaw, 0);
+
+        SyncToContext(logicSnap);
+    }
+
+    private Snapshot CalculateInterpolation(double renderTick)
+    {
+        if (snapshotBuffer.Count == 1) return snapshotBuffer[0];
+
+        if (renderTick >= snapshotBuffer[^1].Tick)
+        {
+            var last = snapshotBuffer[^1];
+            var prev = snapshotBuffer.Count >= 2 ? snapshotBuffer[^2] : last;
+
+            double dtTicks = System.Math.Min(EXTRAPOLATE_MAX_TICKS, renderTick - last.Tick);
+            if (dtTicks <= 0.0001) return last;
+
+            float tickSec = TickService.Instance.TickIntervalMs / 1000f;
+            float dtSec = (float)(dtTicks * tickSec);
+
+            Vector3 dir = last.Dir.sqrMagnitude > 1e-6f
+                ? last.Dir.normalized
+                : (last.Pos != prev.Pos ? (last.Pos - prev.Pos).normalized : Vector3.zero);
+
+            float speed = last.Speed > 0.001f
+                ? last.Speed
+                : (prev.Tick != last.Tick
+                    ? (last.Pos - prev.Pos).magnitude / (((last.Tick - prev.Tick) * tickSec) + 1e-6f)
+                    : 0f);
+
+            Vector3 pos = last.Pos + dir * (speed * dtSec);
+            float yaw = last.Yaw;
+
+            return new Snapshot
+            {
+                Tick = (int)renderTick,
+                Pos = pos,
+                Yaw = yaw,
+                Dir = dir,
+                Speed = speed,
+            };
+        }
+
+        Snapshot prevSnap = snapshotBuffer[0];
+        Snapshot nextSnap = snapshotBuffer[1];
+
+        for (int i = 0; i < snapshotBuffer.Count - 1; i++)
+        {
+            if (snapshotBuffer[i].Tick <= renderTick && snapshotBuffer[i + 1].Tick > renderTick)
+            {
+                prevSnap = snapshotBuffer[i];
+                nextSnap = snapshotBuffer[i + 1];
+                break;
+            }
+        }
+
+        double total = nextSnap.Tick - prevSnap.Tick;
+        float t = 0f;
+        if (total > 0.0001)
+        {
+            t = (float)((renderTick - prevSnap.Tick) / total);
+        }
+        t = Mathf.Clamp01(t);
+
+        return new Snapshot
+        {
+            Tick = (int)renderTick,
+            Pos = Vector3.Lerp(prevSnap.Pos, nextSnap.Pos, t),
+            Yaw = Mathf.LerpAngle(prevSnap.Yaw, nextSnap.Yaw, t),
+            Dir = Vector3.Lerp(prevSnap.Dir, nextSnap.Dir, t),
+            Speed = Mathf.Lerp(prevSnap.Speed, nextSnap.Speed, t),
+        };
+    }
+
+    private void SyncToContext(Snapshot snap)
+    {
+        var ctx = entity.FSM.Ctx;
+        ctx.HasMoveInput = snap.Dir.sqrMagnitude > 0.001f;
     }
 }

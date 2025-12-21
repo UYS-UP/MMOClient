@@ -14,6 +14,7 @@ public class MoveStepPhase : SkillPhase
 
     public override void OnStart(EntityBase caster)
     {
+        if(!caster.IsLocal) return;
         elapsed = 0f;
         lastRatio = 0f;
         duration = Mathf.Max(0.001f, EndTime - StartTime);
@@ -21,6 +22,7 @@ public class MoveStepPhase : SkillPhase
 
     public override void OnUpdate(EntityBase caster, float dt)
     {
+        if(!caster.IsLocal) return;
         elapsed += dt;
         float t = Mathf.Clamp01(elapsed / duration);
         

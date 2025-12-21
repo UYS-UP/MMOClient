@@ -5,29 +5,21 @@
     Npc,
 }
 
-public enum EntityStateType
+public enum EntityState
 {
-    Idle,
-    Move,
-    ReleaseSkill,
-    Hit,
-    Death,
+    None = 0,
+    Dead = 1 << 0,
+    Stunned = 1 << 1,
+    Invincible = 1 << 2,
+    Stealth = 1 << 3,
+    Rooted = 1 << 4,
+    Silenced = 1 << 5,
+    Idle = 1 << 6,
+    Move = 1 << 7,
+    CastSkill = 1 << 8,
+        
 }
 
-public enum MotionStateType
-{
-    Idle,
-    Move,
-    Jump
-}
-
-public enum ActionStateType
-{
-    None,
-    Hit,
-    Death,
-    CastSkill
-}
 public enum ProfessionType
 {
     Warrior,

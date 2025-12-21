@@ -10,8 +10,6 @@ public struct Snapshot
     public float Yaw;
     public float Speed;
     public Vector3 Dir;
-    public MotionStateType MotionState;
-    public ActionStateType ActionState;
 }
 
 public abstract class EntityBase : MonoBehaviour
