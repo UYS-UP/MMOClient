@@ -23,8 +23,6 @@ public class LocalMoveComponent : BaseComponent
     private float lastSentYaw;
     private Vector3 lastSentDir;
 
-    public float TargetYaw;
-
     public override void Attach(EntityBase e)
     {
         entity = e;
@@ -50,40 +48,39 @@ public class LocalMoveComponent : BaseComponent
         int currentTick = TickService.Instance.ClientTick;
 
         Vector2 inputAxis = input?.MoveAxis ?? Vector2.zero;
-        if (!canMove) inputAxis = Vector2.zero;
 
         bool hasInput = inputAxis.sqrMagnitude > 0.01f;
 
         Vector3 wishDir = Vector3.zero;
         if (hasInput)
         {
-            Vector3 camForward = cameraComponent != null
-                ? cameraComponent.GetCameraForwardProjected()
-                : entity.transform.forward;
-
-            Vector3 camRight = cameraComponent != null
-                ? cameraComponent.GetCameraRightProjected()
-                : entity.transform.right;
+            Vector3 camForward = cameraComponent.GetCameraForwardProjected();
+            Vector3 camRight = cameraComponent.GetCameraRightProjected();
 
             wishDir = (camForward * inputAxis.y + camRight * inputAxis.x).normalized;
         }
         
-        float currentEntityYaw = entity.transform.eulerAngles.y;
-        TargetYaw = currentEntityYaw;
-
-        if (canTurn && hasInput && wishDir.sqrMagnitude > 0.000001f)
+        float speed = entity.NetworkEntity.Speed;
+        if (hasInput && wishDir.sqrMagnitude > 0.000001f)
         {
-            float targetYaw = Quaternion.LookRotation(wishDir).eulerAngles.y;
-            float turnSpeedDeg = 720f;
-            float newYaw = Mathf.MoveTowardsAngle(entity.transform.eulerAngles.y, targetYaw, turnSpeedDeg * dt);
-            entity.transform.rotation = Quaternion.Euler(0, newYaw, 0);
-            TargetYaw = newYaw;
+            if (canTurn)
+            {
+                Vector3 camFwd = cameraComponent.GetCameraForwardProjected();
+                var targetYaw = Quaternion.LookRotation(camFwd).eulerAngles.y;
+                float turnSpeedDeg = 720f;
+                float newYaw = Mathf.MoveTowardsAngle(entity.transform.eulerAngles.y, targetYaw, turnSpeedDeg * dt);
+                entity.transform.rotation = Quaternion.Euler(0, newYaw, 0);
+            }
+            
+            Vector3 localDir = entity.transform.InverseTransformDirection(wishDir).normalized;
+            Vector3 weightedDir = new Vector3(localDir.x * speed, 0, localDir.z * speed);
+            speed = weightedDir.magnitude;
         }
         
 
         
-        float speed = entity.NetworkEntity.Speed + 1;
-        Vector3 targetHorizontalVelocity = hasInput
+    
+        Vector3 targetHorizontalVelocity = (hasInput && canMove)
             ? Vector3.ProjectOnPlane(wishDir, groundNormal).normalized * speed
             : Vector3.zero;
 

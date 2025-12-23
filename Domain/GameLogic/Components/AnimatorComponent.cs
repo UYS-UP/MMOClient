@@ -27,6 +27,11 @@ public class AnimatorComponent : BaseComponent
         this.animator = animator;
     }
     
+    public override void Attach(EntityBase entity)
+    {
+        this.entity = entity;
+    }
+    
 
     public void CrossFade(string state, float duration)
     {
@@ -42,12 +47,16 @@ public class AnimatorComponent : BaseComponent
     {
         animator.Play(state);
     }
-    
-    
-    public override void Attach(EntityBase entity)
+
+
+    public void UpdateMovement(Vector3 worldDir, float deltaTime)
     {
-        this.entity = entity;
+        var localDir = entity.transform.InverseTransformDirection(worldDir);
+        animator.SetFloat(horizontalHash, localDir.x, 0.1f, deltaTime);
+        animator.SetFloat(verticalHash, localDir.z, 0.1f, deltaTime);
     }
+    
+
 
     public AnimatorStateInfo GetCurrentAnimatorStateInfo(int layer)
     {

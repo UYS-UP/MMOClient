@@ -12,13 +12,15 @@ public class EntityFsmContext
 
         public bool HitRequested;
         public bool DeathRequested;
+        public bool RollRequested;
+        public bool AttackRequested;
 
         public bool CastRequested;
         public int CastSkillId;
         public SkillInstance CastSkill;
         
         public bool ComboWindowOpen;
-        public int ComboNextSkillId = -1;
+        public int ComboNextSkillId = 0;
 
         public bool ComboRequested;
         

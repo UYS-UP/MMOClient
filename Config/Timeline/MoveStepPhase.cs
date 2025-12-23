@@ -5,12 +5,13 @@ using UnityEngine;
 public class MoveStepPhase : SkillPhase
 {
     public float Distance { get; set; }
-    public int SkillId { get; set; }
     public AnimationCurve Curve { get; set; }
+    public Vector3 MoveDirection { get; set; }
     
     private float elapsed;
     private float duration;
     private float lastRatio;
+    private Vector3 cachedWorldDir;
 
     public override void OnStart(EntityBase caster)
     {
@@ -18,6 +19,9 @@ public class MoveStepPhase : SkillPhase
         elapsed = 0f;
         lastRatio = 0f;
         duration = Mathf.Max(0.001f, EndTime - StartTime);
+        Vector3 localDir = MoveDirection.sqrMagnitude < 0.001f ? Vector3.forward : MoveDirection.normalized;
+        cachedWorldDir = caster.transform.TransformDirection(localDir);
+        cachedWorldDir.Normalize();
     }
 
     public override void OnUpdate(EntityBase caster, float dt)
@@ -33,8 +37,7 @@ public class MoveStepPhase : SkillPhase
         if (Mathf.Abs(deltaRatio) < 0.0001f)
             return;
 
-        Vector3 dir = caster.transform.forward;
-        Vector3 delta = dir * (Distance * deltaRatio);
+        Vector3 delta = cachedWorldDir * (Distance * deltaRatio);
 
         caster.GetEntityComponent<LocalMoveComponent>()
             ?.AddExternalMotion(delta);

@@ -71,23 +71,38 @@ public class LocalSkillComponent : BaseComponent
         
         
         var ctx = entity.FSM.Ctx;
-
-        // 普攻：如果正在施法，只允许在窗口期触发连段；否则一律忽略（不缓冲）
-        if (action == PlayerAction.Attack && ctx.CastSkill != null && !ctx.CastSkill.IsFinished)
+        
+        if (action == PlayerAction.Roll)
         {
-            if (ctx.ComboWindowOpen)
-                ctx.ComboRequested = true;
+            if (ctx.CastSkill != null && !ctx.CastSkill.IsFinished)
+            {
+                return; 
+            }
+            ctx.RollRequested = true;
             return;
         }
-
-        // 非施法状态：正常起手
+        
+        if (action == PlayerAction.Attack)
+        {
+            if (ctx.ComboWindowOpen)
+            {
+                ctx.ComboRequested = true;
+                return;
+            }
+            if (ctx.CastSkill != null && !ctx.CastSkill.IsFinished)
+            {
+                return; 
+            }
+            ctx.AttackRequested = true;
+            return;
+        }
+        
         int skillId = MapActionToSkillId(action);
         if (skillId < 0) return;
-
+        
         if (skillModel != null && !skillModel.CheckSkill(skillId))
             return;
-
-        skillModel?.CastSkill(skillId, true);
+        
         ctx.RequestCast(skillId);
 
     }

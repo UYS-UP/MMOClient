@@ -19,7 +19,8 @@ public enum PlayerAction
     MouseRight,
     
     OpenInventory,
-    Dialogue
+    Dialogue,
+    Roll
 }
 
 [Serializable]
@@ -55,6 +56,7 @@ public class InputBindService : SingletonMono<InputBindService>
         map[PlayerAction.OpenInventory] =  (KeyCode.B,  KeyCode.B);
         map[PlayerAction.Dialogue] = (KeyCode.E, KeyCode.E);
         map[PlayerAction.Skill1] = (KeyCode.Alpha1, KeyCode.Alpha1);
+        map[PlayerAction.Roll] = (KeyCode.LeftShift, KeyCode.LeftShift);
     }
     
     public KeyCode GetPrimary(PlayerAction a) => map.TryGetValue(a, out var k) ? k.primary : KeyCode.None;

@@ -17,7 +17,8 @@ public enum EntityState
     Idle = 1 << 6,
     Move = 1 << 7,
     CastSkill = 1 << 8,
-        
+    Attack = 1 << 9,
+    Roll = 1 << 10,
 }
 
 public enum ProfessionType

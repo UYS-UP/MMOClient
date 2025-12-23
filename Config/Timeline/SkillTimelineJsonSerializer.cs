@@ -32,6 +32,7 @@ public static class SkillTimelineJsonSerializer
             // SkillPhase 子类
             typeof(OpenComboWindowPhase),
             typeof(MoveStepPhase),
+            typeof(ServerMoveStepPhase)
         });
         return settings;
     }

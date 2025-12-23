@@ -163,6 +163,7 @@ public class RemoteMoveComponent : BaseComponent
     private void SyncToContext(Snapshot snap)
     {
         var ctx = entity.FSM.Ctx;
+        ctx.WishDir = snap.Dir;
         ctx.HasMoveInput = snap.Dir.sqrMagnitude > 0.001f;
     }
 }

@@ -7,7 +7,7 @@ public class RemoteMonsterEntity : EntityBase
     {
         AddEntityComponent(new RemoteMoveComponent());
         AddEntityComponent(new AnimatorComponent(GetComponentInChildren<Animator>()));
-        AddEntityComponent(new LocalSkillComponent());
+        AddEntityComponent(new RemoteSkillComponent());
     }
     
 }

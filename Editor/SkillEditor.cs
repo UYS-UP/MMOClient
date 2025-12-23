@@ -23,7 +23,8 @@ public class SkillEditor : EditorWindow
     private readonly string[] validPhaseTypes = new string[] 
     { 
         nameof(OpenComboWindowPhase),
-        nameof(MoveStepPhase)
+        nameof(MoveStepPhase),
+        nameof(ServerMoveStepPhase)
     };
     
     private const string PREFS_JSON_PATH_KEY = "SkillEditor_JsonPath";
@@ -962,6 +963,9 @@ public class SkillEditor : EditorWindow
         else if (activeItem is MoveStepPhase moveStepPhase)
         {
             DrawMoveStepPhaseInspector(moveStepPhase);
+        }else if (activeItem is ServerMoveStepPhase serverMoveStepPhase)
+        {
+            DrawMoveStepPhaseInspector(serverMoveStepPhase);
         }
         else if (activeItem is EffectEvent vfxEvent)
         {
@@ -1014,6 +1018,7 @@ public class SkillEditor : EditorWindow
                 
                 movePhase.Distance = result.TotalDistance;
                 movePhase.Curve = result.MotionCurve;
+                movePhase.MoveDirection = result.MoveDirection;
 
                 Debug.Log($"Bake Applied: Distance {result.TotalDistance:F2}, Duration {result.MoveEndTime - result.MoveStartTime:F2}s");
                 
@@ -1027,6 +1032,54 @@ public class SkillEditor : EditorWindow
         EditorGUILayout.LabelField("Phase Properties", EditorStyles.boldLabel);
         DrawReflectionInspector(movePhase);
     }
+    
+    
+    void DrawMoveStepPhaseInspector(ServerMoveStepPhase movePhase)
+    {
+        EditorGUILayout.LabelField("Root Motion Tools", EditorStyles.boldLabel);
+        GUILayout.BeginVertical("box");
+        
+        tempBakeClip = (AnimationClip)EditorGUILayout.ObjectField("Source Clip", tempBakeClip, typeof(AnimationClip), false, GUILayout.Width(300));
+
+        if (GUILayout.Button("Auto Bake Data"))
+        {
+            if (tempBakeClip == null)
+            {
+                EditorUtility.DisplayDialog("Error", "Please assign an Animation Clip first.", "OK");
+            }
+            else
+            {
+                var result = RootMotionAnalyzer.Bake(previewObject, tempBakeClip, 60, 0.02f);
+                
+                Undo.RecordObject(this, "Bake Root Motion");
+                movePhase.StartTime = result.MoveStartTime;
+                movePhase.EndTime = result.MoveEndTime;
+                
+                movePhase.Distance = result.TotalDistance;
+                movePhase.DistanceSamples = new float[50 + 1];
+
+                for (int i = 0; i <= 50; i++)
+                {
+                    float t = (float)i / 50;
+                    float value = result.MotionCurve.Evaluate(t); 
+                    movePhase.DistanceSamples[i] = value;
+                }
+                movePhase.MoveDirection = result.MoveDirection;
+
+                Debug.Log($"Bake Applied: Distance {result.TotalDistance:F2}, Duration {result.MoveEndTime - result.MoveStartTime:F2}s");
+                
+                // 强制刷新界面
+                GUI.FocusControl(null);
+                Repaint();
+            }
+        }
+        GUILayout.EndVertical();
+        GUILayout.Space(10);
+        EditorGUILayout.LabelField("Phase Properties", EditorStyles.boldLabel);
+        DrawReflectionInspector(movePhase);
+    }
+    
+    
 
 
     void DrawAnimationEventInspector(AnimationEvent animEvt)
@@ -1247,6 +1300,7 @@ public class SkillEditor : EditorWindow
         {
             case nameof(OpenComboWindowPhase): return new OpenComboWindowPhase();
             case nameof(MoveStepPhase): return new MoveStepPhase();
+            case nameof(ServerMoveStepPhase): return new ServerMoveStepPhase();
             default: throw new System.Exception("Unknown Phase type: " + type);
         }
     }

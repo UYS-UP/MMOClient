@@ -99,6 +99,7 @@ public class InputComponent : BaseComponent
         // 事件
         if(keys.IsPressed(PlayerAction.MouseRight)) ActionStarted?.Invoke(PlayerAction.MouseRight);
         if(keys.IsDown(PlayerAction.Skill1)) ActionStarted?.Invoke(PlayerAction.Skill1);
+        if(keys.IsDown(PlayerAction.Roll)) ActionStarted?.Invoke(PlayerAction.Roll);
         if (!InputBindService.Instance.AttackBan)
         {
             if(keys.IsDown(PlayerAction.Attack)) ActionStarted?.Invoke(PlayerAction.Attack);

@@ -30,6 +30,7 @@ public class SkillInstance
     
     public void Start()
     {
+        Debug.Log(SkillId);
         runner.Start(Caster);
 
         if (Caster.IsLocal)
