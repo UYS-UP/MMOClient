@@ -30,7 +30,7 @@ public class NetworkFriendGroupData
     [Key(1)] public string GroupName;
 }
 
-public class FriendModel : Singleton<FriendModel>, IDisposable
+public class FriendModel : IDisposable
 {
     private Dictionary<string, NetworkFriendData> friends = new Dictionary<string, NetworkFriendData>();
     private Dictionary<string, NetworkFriendGroupData>  friendGroups = new Dictionary<string, NetworkFriendGroupData>();
@@ -48,17 +48,12 @@ public class FriendModel : Singleton<FriendModel>, IDisposable
 
     public FriendModel()
     {
-        Debug.Log("FriendModel created");
-        ProtocolRegister.Instance.OnFriendListSyncEvent += OnFriendListSyncEvent;
-        ProtocolRegister.Instance.OnAddFriendGroupEvent += OnAddFriendGroupEvent;
-        ProtocolRegister.Instance.OnAddFriendEvent += OnAddFriendEvent;
-        ProtocolRegister.Instance.OnAddFriendRequestEvent += OnAddFriendRequestEvent;
-        ProtocolRegister.Instance.OnHandleFriendRequestEvent += OnHandleFriendRequestEvent;
+        GameClient.Instance.RegisterHandler(Protocol.SC_FriendListSync, OnFriendListSyncEvent);
     }
 
-    private void OnFriendListSyncEvent(ServerFriendListSync data)
+    private void OnFriendListSyncEvent(GamePacket packet)
     {
-        Debug.Log("Friend list sync event");
+        var data = packet.DeSerializePayload<ServerFriendListSync>();
         foreach (var group in data.Groups)
         {
             friendGroups[group.GroupId] = group;
@@ -100,18 +95,7 @@ public class FriendModel : Singleton<FriendModel>, IDisposable
         friends[data.CharacterId] = data;
         OnFriendReceived?.Invoke(data);
     }
-
     
-
-    public void AddFriend(string characterName)
-    {
-        GameClient.Instance.Send(Protocol.AddFriend, new ClientAddFriend { CharacterName = characterName });
-    }
-
-    public void HandleAddFriendRequest(string requestId, bool isAccept)
-    {
-        GameClient.Instance.Send(Protocol.HandleFriendRequest, new ClientHandleAddFriendRequest {RequestId = requestId, IsAccept = isAccept});
-    }
 
     public void AlterFriendRemark(string characterId, string remark)
     {

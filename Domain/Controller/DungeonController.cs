@@ -37,7 +37,7 @@ public class DungeonController : IDisposable
     private void OnTeamUpdated()
     {
         if(!teamModel.TryGetTeam(out var team)) return;
-        dungeonView.UpdateTeam(team.MaxPlayers, team.TeamMembers);
+        // dungeonView.UpdateTeam(team.MaxPlayers, team.TeamMembers);
     }
 
     #endregion
@@ -45,13 +45,7 @@ public class DungeonController : IDisposable
     public void StartDungeon()
     {
         if(!teamModel.TryGetTeam(out var team)) return;
-        GameClient.Instance.Send(Protocol.StartDungeon, team.TeamId);
-    }
-
-    public void InviteRegion()
-    {
-        if(!teamModel.TryGetTeam(out var team)) return;
-        GameClient.Instance.Send(Protocol.InvitePlayer, team.TeamId);
+        GameClient.Instance.Send(Protocol.CS_StartDungeon, team.TeamId);
     }
     
     public void Dispose()

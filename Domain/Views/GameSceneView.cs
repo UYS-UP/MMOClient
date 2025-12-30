@@ -6,7 +6,7 @@ using UnityEngine;
 
 public class GameSceneView : BaseView
 {
-    private readonly Dictionary<string, HealthBarUI> healthBars = new Dictionary<string, HealthBarUI>();
+    private readonly Dictionary<int, HealthBarUI> healthBars = new Dictionary<int, HealthBarUI>();
     
     private UnityEngine.RectTransform HealthBarContainerRect;
     private UnityEngine.RectTransform EntityNameContainerRect;
@@ -34,6 +34,7 @@ public class GameSceneView : BaseView
     }
 
     private GameSceneController controller;
+    private GameObject damagePrefab;
 
     protected override void Awake()
     {
@@ -41,11 +42,22 @@ public class GameSceneView : BaseView
         BindComponent();
         controller = new GameSceneController(this);
         DialogueTipRect.gameObject.SetActive(false);
+        damagePrefab = Resources.Load<GameObject>("Prefabs/UI/HUD/DamageUI");
+        PoolService.Instance.Preload(damagePrefab, 20);
     }
 
     public void Update()
     {
         controller.Update();
+    }
+
+    public void LoadRegionScene(int mapId)
+    {
+        SceneService.Instance.LoadThenInvoke($"GameScene_{mapId}", () =>
+        {
+            Instantiate(ResourceService.Instance.LoadResource<GameObject>("Prefabs/EntityWorld"));
+            GameClient.Instance.Send(Protocol.CS_EnterRegion, new ClientEnterRegion {RegionId = mapId});
+        });
     }
 
 
@@ -61,7 +73,7 @@ public class GameSceneView : BaseView
     }
 
     
-    public void UpdateHealthBar(string entityId, int currentHp, int maxHp)
+    public void UpdateHealthBar(int entityId, float currentHp, float maxHp)
     {
         if (!healthBars.TryGetValue(entityId, out var healthBar)) return;
         healthBar.UpdateHealthBar(currentHp, maxHp);
@@ -70,7 +82,7 @@ public class GameSceneView : BaseView
         healthBars.Remove(entityId);
     }
     
-    public void CreateHealthBar(string entityId, Transform target, int currentHp, int maxHp)
+    public void CreateHealthBar(int entityId, Transform target, float currentHp, float maxHp)
     {
         if (healthBars.ContainsKey(entityId)) return;
 
@@ -86,7 +98,7 @@ public class GameSceneView : BaseView
     }
     
 
-    public void DestroyHealthBar(string entityId)
+    public void DestroyHealthBar(int entityId)
     {
         if (healthBars.TryGetValue(entityId, out var healthBar))
         {
@@ -94,4 +106,11 @@ public class GameSceneView : BaseView
             healthBars.Remove(entityId);
         }
     }
+
+    public void CreateDamageText(Vector3 pos, float damage)
+    {
+        var damageUI = PoolService.Instance.Spawn(damagePrefab, DamageContainerRect).GetComponent<DamageUI>();
+        damageUI.Initialize(damage, pos, Color.red);
+    }
+    
 }

@@ -18,7 +18,7 @@ public class SkillIndicator
     private enum Mode { None, MeleeSector, AoeCircle, UnitTarget }
     private Mode currentMode = Mode.None;
 
-    public event Action<int, string> OnUnitTargetSelected;
+    public event Action<int, int> OnUnitTargetSelected;
     public event Action<int, Vector3> OnAoeCircleSelected;
     public event Action<int, Vector3> OnMeleeSectorSelected;
     

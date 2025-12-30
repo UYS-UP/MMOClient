@@ -69,7 +69,6 @@ public class StorageModel :  IDisposable
     public int MaxSize { get; private set; } = -1;
     public int MaxOccupiedSlot { get; private set; } = -1;
     
-    // 新增：标记是否已经完全加载
     public bool IsFullyLoaded { get; private set; } = false;
     
     public event Action<SlotKey> OnSlotChanged;
@@ -96,10 +95,9 @@ public class StorageModel :  IDisposable
 
     public StorageModel()
     {
-        ProtocolRegister.Instance.OnSwapInventorySlotResponseEvent += OnSwapInventorySlotResponseEvent;
-        ProtocolRegister.Instance.OnQueryInventoryEvent += OnQueryInventoryResponseEvent;
-        ProtocolRegister.Instance.OnAddItemEvent += OnAddItemEvent;
-        ProtocolRegister.Instance.OnEnterGameResponseEvent += OnEnterGameResponseEvent;
+        GameClient.Instance.RegisterHandler(Protocol.SC_SwapStorageSlot, OnSwapInventorySlot);
+        GameClient.Instance.RegisterHandler(Protocol.SC_QueryInventory, OnQueryInventory);
+        GameClient.Instance.RegisterHandler(Protocol.SC_AddInventoryItem, OnAddInventoryItem);
     }
 
     public void SetMaxSize(int maxSize)
@@ -125,14 +123,12 @@ public class StorageModel :  IDisposable
     {
         if (isLoading) return;
         
-        // 如果还不知道背包大小，先请求第一批
         if (MaxSize == -1)
         {
             RequestInventoryData(0, BATCH_SIZE);
             return;
         }
         
-        // 检查是否已经全部加载完成
         if (currentBatchStart >= MaxOccupiedSlot)
         {
             IsFullyLoaded = true;
@@ -163,22 +159,19 @@ public class StorageModel :  IDisposable
         SetOrRemove(slot, data);
     }
 
-    private void OnEnterGameResponseEvent(ServerPlayerEnterGame data)
+    private void OnAddInventoryItem(GamePacket packet)
     {
-        PreloadInventory();
-    }
-
-    private void OnAddItemEvent(ServerAddItem data)
-    {
+        var data = packet.DeSerializePayload<ServerAddItem>();
         if (data == null) return;
         SetMaxSize(data.MaxSize);
         var updatedSlots = new List<SlotKey>();
         foreach (var kv in data.Items)
         {
-            Debug.Log(kv.Key.ToString());
+            Debug.Log(kv.Key + ": " + kv.Value.ItemName + "_" + kv.Value.ItemCount);
             SetOrRemove(kv.Key, kv.Value);
             updatedSlots.Add(kv.Key);
         }
+
         OnItemAcquired?.Invoke();
         OnSlotsChanged?.Invoke(updatedSlots);
     }
@@ -212,7 +205,7 @@ public class StorageModel :  IDisposable
             Slot1 = from,
             Slot2 = to,
         };
-        GameClient.Instance.Send(Protocol.SwapStorageSlot, payload);
+        GameClient.Instance.Send(Protocol.CS_SwapStorageSlot, payload);
         
         OnSlotChanged?.Invoke(from);
         OnSlotChanged?.Invoke(to);
@@ -233,16 +226,16 @@ public class StorageModel :  IDisposable
         
         Debug.Log($"请求背包数据: {startSlot} - {endSlot}");
 
-        GameClient.Instance.Send(Protocol.QueryInventory, new ClientPlayerQueryInventory
+        GameClient.Instance.Send(Protocol.CS_QueryInventory, new ClientQueryInventory
         {
             StartSlot = startSlot,
             EndSlot = endSlot,
         });
     }
 
-    private void OnSwapInventorySlotResponseEvent(ServerSwapStorageSlotResponse data)
+    private void OnSwapInventorySlot(GamePacket packet)
     {
-        Debug.Log("交换成功");
+        var data = packet.DeSerializePayload<ServerSwapStorageSlotResponse>();
         if (!pendings.TryGetValue(data.ReqId, out var p)) return;
         if (!data.Success)
         {
@@ -262,8 +255,9 @@ public class StorageModel :  IDisposable
         pendings.Remove(data.ReqId);
     }
     
-    private void OnQueryInventoryResponseEvent(ServerQueryInventory data)
+    private void OnQueryInventory(GamePacket packet)
     {
+        var data = packet.DeSerializePayload<ServerQueryInventory>();
         SetMaxSize(data.MaxSize);
         UpsertRange(data.Data);
         MaxOccupiedSlot = data.MaxOccupiedSlot;

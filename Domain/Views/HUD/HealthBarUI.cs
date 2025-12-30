@@ -42,10 +42,10 @@ public class HealthBarUI : MonoBehaviour
     /// <summary>
     /// 更新血条显示
     /// </summary>
-    public void UpdateHealthBar(int currentHealth, int maxHealth)
+    public void UpdateHealthBar(float currentHealth, float maxHealth)
     {
         healthText.text = currentHealth + "/" + maxHealth;
-        float healthPercent = (float)currentHealth / (float)maxHealth;
+        float healthPercent = currentHealth / maxHealth;
         healthImage.DOFillAmount(healthPercent, 0.2f);
         
     }

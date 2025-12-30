@@ -1,9 +1,11 @@
 ﻿using System;
+using UnityEngine;
 
 public class GameSceneController  : IDisposable
 {
     private readonly EntityModel entityModel;
     private readonly DialogueModel dialogueModel;
+    private readonly StorageModel storageModel;
     
     private readonly GameSceneView gameSceneView;
 
@@ -11,6 +13,7 @@ public class GameSceneController  : IDisposable
     {
         entityModel = GameContext.Instance.Get<EntityModel>();
         dialogueModel = GameContext.Instance.Get<DialogueModel>();
+        storageModel = GameContext.Instance.Get<StorageModel>();
 
         this.gameSceneView = gameSceneView;
         RegisterEvents();
@@ -29,6 +32,9 @@ public class GameSceneController  : IDisposable
         entityModel.OnEntityDestroyed += OnEntityDestroyed;
         entityModel.OnEntityHpUpdated += OnEntityHpUpdated;
         dialogueModel.OnDialogueTip += OnDialogueTip;
+        entityModel.OnEntityHit += OnEntityHit;
+        
+        GameClient.Instance.RegisterHandler(Protocol.SC_EnterRegion, HandleEnterRegion);
     }
 
     private void UnregisterEvents()
@@ -36,21 +42,28 @@ public class GameSceneController  : IDisposable
         entityModel.OnEntityCreated -= OnEntityCreated;
         entityModel.OnEntityDestroyed -= OnEntityDestroyed;
         entityModel.OnEntityHpUpdated -= OnEntityHpUpdated;
-        
+        entityModel.OnEntityHit -= OnEntityHit;
         dialogueModel.OnDialogueTip -= OnDialogueTip;
     }
 
     public void Update()
     {
         if (!InputBindService.Instance.IsDown(PlayerAction.Dialogue)
-            || dialogueModel.CurrentNpcId == "") return;
+            || dialogueModel.CurrentNpcId == -1) return;
         InputBindService.Instance.UIIsOpen = true;
         UIService.Instance.ShowView<DialogueView>();
         dialogueModel.StartDialogue();
     }
+
+    private void HandleEnterRegion(GamePacket packet)
+    {
+        var data = packet.DeSerializePayload<ServerEnterRegion>();
+        gameSceneView.LoadRegionScene(data.MapId);
+        storageModel.PreloadInventory();
+    }
     
     #region EntityModel Events
-    private void OnEntityCreated(string entityId)
+    private void OnEntityCreated(int entityId)
     {
         if(!entityModel.TryGetEntity(entityId, out var entity)) return;
         
@@ -60,17 +73,23 @@ public class GameSceneController  : IDisposable
         }
     }
 
-    private void OnEntityDestroyed(string entityId)
+    private void OnEntityDestroyed(int entityId)
     {
         gameSceneView.DestroyHealthBar(entityId);
     }
 
-    private void OnEntityHpUpdated(string entityId, int currentHp, int maxHp, EntityType type)
+    private void OnEntityHpUpdated(int entityId, float currentHp, float maxHp, EntityType type)
     {
         if (type == EntityType.Monster)
         {
             gameSceneView.UpdateHealthBar(entityId, currentHp, maxHp);
+            
         }
+    }
+
+    private void OnEntityHit(Vector3 position, float damage)
+    {
+        gameSceneView.CreateDamageText(position + new Vector3(0, 1.5f, 0), damage);
     }
     #endregion
     

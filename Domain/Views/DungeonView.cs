@@ -55,29 +55,6 @@ public class DungeonView : BaseView
         Initialize();
     }
 
-    private void Start()
-    {
-        ProtocolRegister.Instance.OnLoadDungeonEvent += OnLoadDungeonEvent;
-        
-    }
-
-    private void OnDestroy()
-    {
-        ProtocolRegister.Instance.OnLoadDungeonEvent -= OnLoadDungeonEvent; 
-        
-    }
-
-    private void OnLoadDungeonEvent(ServerLoadDungeon data)
-    {
-        UIService.Instance.HidePanel<GameView>();
-        UIService.Instance.HidePanel<DungeonView>(onComplete: (view) => InputBindService.Instance.UIIsOpen = false);
-        SceneService.Instance.LoadThenInvoke($"GameScene_{data.TemplateId}", () =>
-        {
-            Instantiate(ResourceService.Instance.LoadResource<GameObject>("Prefabs/EntityWorld"));
-            GameClient.Instance.Send(Protocol.EnterDungeon, false);
-        });
-    } 
-
     private void Initialize()
     {
         teamMembers = new List<TeamMemberUI>();
@@ -107,7 +84,7 @@ public class DungeonView : BaseView
         }
         createButton.onClick.AddListener(() =>
         {
-            GameClient.Instance.Send(Protocol.CreateDungeonTeam, new ClientCreateDungeonTeam
+            GameClient.Instance.Send(Protocol.CS_CreateDungeonTeam, new ClientCreateDungeonTeam
             {
                 TeamName = "副本大王",
                 TemplateId = currentDungeon
@@ -118,7 +95,7 @@ public class DungeonView : BaseView
             Debug.Log("Enter Dungeon");
             controller.StartDungeon();
         });
-        inviteRegionButton.onClick.AddListener(() => controller.InviteRegion());
+        // inviteRegionButton.onClick.AddListener(() => controller.InviteRegion());
     }
     
 
@@ -147,13 +124,11 @@ public class DungeonView : BaseView
     
     private void EnsureTeamMemberSlots(int maxPlayers)
     {
-        // 只补足，不重复造
         while (teamMembers.Count < maxPlayers)
         {
             var obj = Instantiate(teamMemberPrefab, teamMemberRect, false);
             teamMembers.Add(obj.GetComponent<TeamMemberUI>());
         }
-        // 多余的隐藏即可（避免销毁/重建带来的 GC）
         for (int i = 0; i < teamMembers.Count; i++)
         {
             teamMembers[i].ActiveInvite();

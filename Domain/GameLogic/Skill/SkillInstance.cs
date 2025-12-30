@@ -30,18 +30,17 @@ public class SkillInstance
     
     public void Start()
     {
-        Debug.Log(SkillId);
         runner.Start(Caster);
 
         if (Caster.IsLocal)
         {
-            var payload = new ClientPlayerReleaseSkill
+            var payload = new ClientCharacterCastSkill
             {
                 SkillId = SkillId,
                 ClientTick = TickService.Instance.ClientTick,
                 InputType = SkillCastInputType.None
             };
-            GameClient.Instance.Send(Protocol.PlayerReleaseSkill, payload);
+            GameClient.Instance.Send(Protocol.CS_CharacterCastSkill, payload);
         }
     }
     

@@ -43,12 +43,12 @@ public class EntityHitEventArgs : EventArgs
 
 public class TriggerEnterNpcEventArgs : EventArgs
 {
-    public string NpcId;
+    public int NpcId;
 }
 
 public class TriggerExitNpcEventArgs : EventArgs
 {
-    public string NpcId;
+    public int NpcId;
 }
 
 

@@ -3,7 +3,7 @@ using System;
 using DG.Tweening;
 using UnityEngine;
 
-public class ItemNotificationUI : MonoBehaviour, IPooledObject
+public class ItemAcquiredNotifiycation : MonoBehaviour, IPooledObject
 {
 
     public RectTransform Rect;
@@ -11,6 +11,7 @@ public class ItemNotificationUI : MonoBehaviour, IPooledObject
     
     private TMPro.TextMeshProUGUI Name;
     private UnityEngine.UI.Image Icon;
+    
     
     public void UpdateNotification(string name, Sprite icon)
     {

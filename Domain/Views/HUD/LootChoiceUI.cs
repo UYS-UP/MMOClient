@@ -24,7 +24,7 @@ public class LootChoiceUI : MonoBehaviour
         itemId = item.ItemId;
         RollButton.onClick.AddListener(() =>
         {
-            GameClient.Instance.Send(Protocol.DungeonLootChoice, new ClientDungeonLootChoice
+            GameClient.Instance.Send(Protocol.CS_DungeonLootChoice, new ClientDungeonLootChoice
             {
                 IsRoll = true,
                 ItemId = itemId,
@@ -35,7 +35,7 @@ public class LootChoiceUI : MonoBehaviour
         
         PassButton.onClick.AddListener(() =>
         {
-            GameClient.Instance.Send(Protocol.DungeonLootChoice, new ClientDungeonLootChoice
+            GameClient.Instance.Send(Protocol.CS_DungeonLootChoice, new ClientDungeonLootChoice
             {
                 IsRoll = false,
                 ItemId = itemId,

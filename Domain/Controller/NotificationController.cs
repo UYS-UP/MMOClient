@@ -73,7 +73,7 @@ public class NotificationController : IDisposable
         if(!teamModel.TryGetTeam(out var team)) return;
         UIService.Instance.ShowView<DungeonView>((dungeonView) =>
         {
-            dungeonView.TeamJoined(team.MaxPlayers, team.TeamMembers);
+            // dungeonView.TeamJoined(team.MaxPlayers, team.TeamMembers);
         });
     }
 

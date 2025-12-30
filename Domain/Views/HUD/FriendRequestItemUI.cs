@@ -52,13 +52,13 @@ public class FriendRequestItemUI : MonoBehaviour
 
     private void OnRefuseButtonClick()
     {
-        FriendModel.Instance.HandleAddFriendRequest(requestId, false);
+        // FriendModel.Instance.HandleAddFriendRequest(requestId, false);
         Destroy(gameObject);
     }
 
     private void OnAcceptButtonClick()
     {
-        FriendModel.Instance.HandleAddFriendRequest(requestId, true);
+        // FriendModel.Instance.HandleAddFriendRequest(requestId, true);
         Destroy(gameObject);
     }
 

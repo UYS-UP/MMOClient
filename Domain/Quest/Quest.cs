@@ -32,7 +32,7 @@ public class QuestNode
 public class QuestObjective
 {
     [Key(0)] public ObjectiveType Type { get; set; }
-    [Key(1)] public string TargetId { get; set; }      // 怪物ID、物品ID、NPC ID、区域ID
+    [Key(1)] public int TargetId { get; set; }      // 怪物ID、物品ID、NPC ID、区域ID
     [Key(2)] public int RequireCount { get; set; } = 1;
     [Key(3)] public int CurrentCount { get; set; } = 0;
 

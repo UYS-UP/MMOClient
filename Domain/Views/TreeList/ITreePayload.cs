@@ -23,7 +23,7 @@ public class FriendInfo : ITreePayload
 {
     public string FriendId;
     public string DisplayName;
-    public Sprite Avatar;     // 可为 null
+    public Sprite Avatar;  
     public bool Online;
 
     public NodeKind Kind => NodeKind.Friend;

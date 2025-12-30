@@ -46,7 +46,7 @@ public class LocalSkillComponent : BaseComponent
     }
     
     
-    private void OnUnitTargetSelected(int skillId, string targetEntityId)
+    private void OnUnitTargetSelected(int skillId, int targetEntityId)
     {
         if (!entity.IsLocal) return;
         if (skillModel != null && !skillModel.CheckSkill(skillId))

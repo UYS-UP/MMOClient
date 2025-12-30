@@ -10,13 +10,14 @@ using Object = UnityEngine.Object;
 public class EntityModel :  IDisposable
 {
     private readonly EntityPrefabConfig prefabConfig = ResourceService.Instance.LoadResource<EntityPrefabConfig>("Data/EntityPrefabConfig");
-    private readonly Dictionary<string, EntityBase> entities = new Dictionary<string, EntityBase>();
+    private readonly Dictionary<int, EntityBase> entities = new Dictionary<int, EntityBase>();
     private LocalRoleEntity localEntity;
     
-    public event Action<string> OnEntityCreated;
+    public event Action<int> OnEntityCreated;
     
-    public event Action<string> OnEntityDestroyed;
-    public event Action<string, int, int, EntityType> OnEntityHpUpdated;
+    public event Action<int> OnEntityDestroyed;
+    public event Action<int, float, float, EntityType> OnEntityHpUpdated;
+    public event Action<Vector3, float> OnEntityHit;
     public LocalRoleEntity LocalEntity => localEntity;
     
     /// <summary>
@@ -59,7 +60,7 @@ public class EntityModel :  IDisposable
     /// <summary>
     /// 尝试获取实体
     /// </summary>
-    public bool TryGetEntity(string entityId, out EntityBase entity)
+    public bool TryGetEntity(int entityId, out EntityBase entity)
     {
         return entities.TryGetValue(entityId, out entity);
     }
@@ -67,7 +68,7 @@ public class EntityModel :  IDisposable
     /// <summary>
     /// 尝试获取指定类型的实体
     /// </summary>
-    public bool TryGetEntity<T>(string entityId, out T entity) where T : EntityBase
+    public bool TryGetEntity<T>(int entityId, out T entity) where T : EntityBase
     {
         if (entities.TryGetValue(entityId, out var value) && value is T)
         {
@@ -90,7 +91,7 @@ public class EntityModel :  IDisposable
     /// <summary>
     /// 移除实体
     /// </summary>
-    public bool RemoveEntity(string entityId)
+    public bool RemoveEntity(int entityId)
     {
         if (!entities.TryGetValue(entityId, out var entity))
         {
@@ -117,7 +118,7 @@ public class EntityModel :  IDisposable
     /// <summary>
     /// 检查实体是否存在
     /// </summary>
-    public bool ContainsEntity(string entityId)
+    public bool ContainsEntity(int entityId)
     {
         return entities.ContainsKey(entityId);
     }
@@ -127,12 +128,12 @@ public class EntityModel :  IDisposable
         
     }
 
-    public bool IsLocalEntity(string entityId)
+    public bool IsLocalEntity(int entityId)
     {
         return localEntity.EntityId == entityId;
     }
 
-    public void UpdateCurrentHp(int currentHp, string entityId)
+    public void UpdateCurrentHp(float currentHp, int entityId)
     {
         if (!entities.TryGetValue(entityId, out var entity)) return;
         switch (entity.NetworkEntity)
@@ -146,8 +147,14 @@ public class EntityModel :  IDisposable
                 OnEntityHpUpdated?.Invoke(entity.EntityId, currentHp, monster.MaxHp, monster.EntityType);
                 break;
         }
+    
         
-        
+    }
+
+    public void EntityHit(int entityId, float damage)
+    {
+        if (!entities.TryGetValue(entityId, out var entity)) return;
+        OnEntityHit?.Invoke(entity.transform.position, damage);
     }
 }
 

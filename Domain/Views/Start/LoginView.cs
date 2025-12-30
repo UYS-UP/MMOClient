@@ -23,6 +23,8 @@ public class LoginView : BaseView
     private Button registerLoginButton;
     private Button registerRegisterButton;
     private Button quitGameButton;
+    
+    private LoginController loginController;
 
     protected override void Awake()
     {
@@ -63,18 +65,9 @@ public class LoginView : BaseView
         
         loginTransform.gameObject.SetActive(true);
         registerTransform.gameObject.SetActive(false);
-    }
 
-    private void Start()
-    {
-        ProtocolRegister.Instance.OnLoginResponseEvent += OnLoginResponseEvent;
-        ProtocolRegister.Instance.OnRegisterResponseEvent += OnRegisterResponse;
-    }
+        loginController = new LoginController(this);
 
-    private void OnDestroy()
-    {
-        ProtocolRegister.Instance.OnLoginResponseEvent -= OnLoginResponseEvent;
-        ProtocolRegister.Instance.OnRegisterResponseEvent -= OnRegisterResponse;
     }
 
     private void OnLoginClick()
@@ -90,39 +83,19 @@ public class LoginView : BaseView
             Username = loginUsernameInput.text,
             Password = loginPasswordInput.text
         };
-        GameClient.Instance.Send(Protocol.Login, payload);
+        GameClient.Instance.Send(Protocol.CS_Login, payload);
     }
+    
 
-    private void OnLoginResponseEvent(ResponseMessage<NetworkPlayer> data)
+    public void Register(string username)
     {
-        if (data.Code == StateCode.Success)
-        { 
-            UIService.Instance.HidePanel<LoginView>();
-            GameClient.Instance.SetAccountId(data.Data.PlayerId);
-            PlayerModel.Instance.Initialize(data.Data);
-            UIService.Instance.ShowView<CharacterSelectView>((panel) =>
-            {
-                foreach (var role in data.Data.Roles)
-                {
-                    panel.AddRole(role);
-                }
-            });
-        }
-    }
-
-    private void OnRegisterResponse(ResponseMessage<string> data)
-    {
-        if (data.Code == StateCode.Success)
-        {
-            loginTransform.gameObject.SetActive(true);
-            registerTransform.gameObject.SetActive(false);
-            loginUsernameInput.text = data.Data;
-            registerPasswordInput.text = "";
-            registerRePasswordInput.text = "";
-            registerCodeInput.text = "";
-            registerUsernameInput.text = "";
-        }
-        
+        loginTransform.gameObject.SetActive(true);
+        registerTransform.gameObject.SetActive(false);
+        loginUsernameInput.text = username;
+        registerPasswordInput.text = "";
+        registerRePasswordInput.text = "";
+        registerCodeInput.text = "";
+        registerUsernameInput.text = "";
     }
 
     private void OnRegisterClick()
@@ -150,7 +123,7 @@ public class LoginView : BaseView
             RePassword = registerRePasswordInput.text
         };
         
-        GameClient.Instance.Send(Protocol.Register, playerRegister);
+        GameClient.Instance.Send(Protocol.CS_Register, playerRegister);
     }
     
     

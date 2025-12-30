@@ -24,7 +24,6 @@ public class EntityFsmContext
 
         public bool ComboRequested;
         
-        
         public void RequestCast(int skillId)
         {
                 if (CastSkill != null && !CastSkill.IsFinished) return;
@@ -39,12 +38,6 @@ public class EntityFsmContext
                 CastSkillId = skillId;
         }
         
-
-        public void ConsumeOneFrameFlags()
-        {
-                HitRequested = false;
-                DeathRequested = false;
-        }
 
         public EntityFsmContext(EntityBase entity)
         {

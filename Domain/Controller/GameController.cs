@@ -38,7 +38,7 @@ public class GameController : IDisposable
         questModel.OnQuestAdded += OnQuestAdded;
         questModel.OnQuestCompleted += OnQuestCompleted;
         
-        GameClient.Instance.RegisterHandler(Protocol.ApplyBuff, OnApplyBuff);
+        GameClient.Instance.RegisterHandler(Protocol.SC_ApplyBuff, OnApplyBuff);
 
     }
 
@@ -61,13 +61,30 @@ public class GameController : IDisposable
     
     public void Update()
     {
-        if (InputBindService.Instance.IsDown(PlayerAction.OpenInventory) && storageModel.IsFullyLoaded)
+
+        if (Input.GetKeyDown(KeyCode.I))
         {
-            UIService.Instance.ShowView<CharacterInfoView>((view) =>
+            UIService.Instance.ShowView<NavigationView>(view =>
             {
-                view.Initialize(storageModel.MaxSize);
-            });
-            InputBindService.Instance.UIIsOpen = true;
+                var character = (NetworkCharacter)entityModel.LocalEntity.NetworkEntity;
+                view.OpenProfile(
+                    character.Name,
+                    "暂无工会",
+                    "暂无称号",
+                    character.Level,
+                    100,
+                    character.Ex,
+                    character.MaxEx
+                );
+            }, layer: UILayer.Popup);
+        }
+
+        if (Input.GetKeyDown(KeyCode.B))
+        {
+            UIService.Instance.ShowView<NavigationView>(view =>
+            {
+                view.OpenInventory(storageModel.MaxSize);
+            }, layer: UILayer.Popup);
         }
         
         if (Input.GetKeyDown(KeyCode.P))
@@ -106,22 +123,21 @@ public class GameController : IDisposable
 
     #region EntityModel Events
     
-    private void OnEntityCreated(string entityId)
+    private void OnEntityCreated(int entityId)
     {
         if(!entityModel.TryGetEntity(entityId, out var entity)) return;
         if (!entityModel.IsLocalEntity(entityId)) return;
         var character = (NetworkCharacter)entity.NetworkEntity;
         gameView.UpdatePlayerExperience(character.Ex, character.MaxEx);
         gameView.UpdatePlayerHealth(character.Hp, character.MaxHp);
-        gameView.UpdatePlayerMana(character.Mp, character.MaxMp);
     }
     
-    private void OnEntityDestroyed(string entityId)
+    private void OnEntityDestroyed(int entityId)
     {
         
     }
 
-    private void OnEntityHpUpdated(string entityId, int currentHp, int maxHp, EntityType type)
+    private void OnEntityHpUpdated(int entityId, float currentHp, float maxHp, EntityType type)
     {
         if(!entityModel.IsLocalEntity(entityId)) return;
         gameView.UpdatePlayerHealth( currentHp, maxHp);

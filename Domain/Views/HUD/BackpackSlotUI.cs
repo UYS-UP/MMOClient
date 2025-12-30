@@ -1,12 +1,27 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class BackpackSlotUI : MonoBehaviour, IPooledObject, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerEnterHandler, IPointerExitHandler
+public struct ItemActionInfo
+{
+    public string ButtonText;
+    public Action OnClick;
+    public bool IsDestructive;
+
+    public ItemActionInfo(string buttonText, Action onClick, bool isDestructive = false)
+    {
+        ButtonText = buttonText;
+        OnClick = onClick;
+        IsDestructive = isDestructive;
+    }
+}
+
+public class BackpackSlotUI : MonoBehaviour, IPooledObject, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
 {
     public SlotKey SlotKey;
     public bool HasItem;
@@ -21,6 +36,8 @@ public class BackpackSlotUI : MonoBehaviour, IPooledObject, IBeginDragHandler, I
     private static RectTransform DragIconRect;
     private bool dragging;
     private bool hasEntered;
+
+    public event Action<BackpackSlotUI> OnClick;
 
     private void Awake()
     {
@@ -42,7 +59,7 @@ public class BackpackSlotUI : MonoBehaviour, IPooledObject, IBeginDragHandler, I
         }
 
         HasItem = true;
-        iconImage.sprite = ResourceService.Instance.LoadResource<Sprite>($"Sprites/Items/{item.ItemType}/{item.ItemTemplateId}");
+        // iconImage.sprite = ResourceService.Instance.LoadResource<Sprite>($"Sprites/Items/{item.ItemType}/{item.ItemTemplateId}");
         countText.text = item.IsStack ? item.ItemCount.ToString() : "";
     }
 
@@ -70,7 +87,7 @@ public class BackpackSlotUI : MonoBehaviour, IPooledObject, IBeginDragHandler, I
         var target = GetSlotUnderPointer<BackpackSlotUI>(eventData);
         if (target != null && target != this)
         {
-            var view = UIService.Instance.GetView<CharacterInfoView>();
+            var view = UIService.Instance.GetView<NavigationView>();
             view.RequestSwap(
                 SlotKey,
                 target.SlotKey
@@ -100,7 +117,7 @@ public class BackpackSlotUI : MonoBehaviour, IPooledObject, IBeginDragHandler, I
         if (DragIcon == null)
         {
             var go = new GameObject("DragIcon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            go.transform.SetParent(UIService.Instance.GetView<CharacterInfoView>().transform, false);
+            go.transform.SetParent(UIService.Instance.GetView<NavigationView>().transform, false);
             DragIcon = go.GetComponent<Image>();
             DragIcon.raycastTarget = false;
             DragIconRect = go.GetComponent<RectTransform>();
@@ -120,28 +137,36 @@ public class BackpackSlotUI : MonoBehaviour, IPooledObject, IBeginDragHandler, I
 
     private void HideDragIcon() => DragIcon?.gameObject.SetActive(false);
 
-    public void OnPointerEnter(PointerEventData _) 
+    public void OnPointerEnter(PointerEventData eventData)
     {
-        if (HasItem && !hasEntered)
-        {
-            hasEntered = true;
-            UIService.Instance.GetView<CharacterInfoView>().ShowItemInfo(transform as RectTransform, SlotKey, tooltipPadding);
-        }
+        Rect.DOScale(1.1f, 0.2f).SetEase(Ease.OutQuad);
     }
-
-    public void OnPointerExit(PointerEventData _) 
+    
+    public void OnPointerExit(PointerEventData eventData)
     {
-        hasEntered = false;
-        UIService.Instance.GetView<CharacterInfoView>().HideItemInfo();
+        Rect.DOScale(1f, 0.2f).SetEase(Ease.InQuad);
     }
+    
 
     public void OnObjectSpawn()
     {
-        Rect.localPosition = Vector3.zero;
+
     }
 
     public void OnObjectDespawn()
     {
-   
+        Rect.localPosition = Vector3.zero;
+        OnClick = null; 
     }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (!dragging && HasItem)
+        {
+            OnClick?.Invoke(this);
+        }
+    }
+
+
+
 }

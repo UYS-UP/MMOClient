@@ -167,11 +167,8 @@ public class GameView : BaseView
         
         dungeonLimitRect.gameObject.SetActive(false);
         voteContainer.gameObject.SetActive(false);
-        ProtocolRegister.Instance.OnLevelRegionEvent += OnLevelRegionEvent;
-        ProtocolRegister.Instance.OnLevelDungeonEvent += OnLevelDungeonEvent;
-        ProtocolRegister.Instance.OnPlayerEnterDungeonEvent += OnPlayerEnterDungeonEvent; 
-        GameClient.Instance.RegisterHandler(Protocol.DungeonLootInfo, OnDungeonLootInfo);
-        GameClient.Instance.RegisterHandler(Protocol.DungeonLootChoice, OnDungeonLootChoice);
+        GameClient.Instance.RegisterHandler(Protocol.SC_DungeonLootInfo, OnDungeonLootInfo);
+        GameClient.Instance.RegisterHandler(Protocol.SC_DungeonLootChoice, OnDungeonLootChoice);
     }
 
     private void OnDungeonLootInfo(GamePacket packet)
@@ -193,26 +190,7 @@ public class GameView : BaseView
         if(!lootChoices.TryGetValue(data.ItemId, out var lootChoice)) return;
         lootChoice.UpdateChoice(data.EntityName, data.LootChoiceType, data.RollValue.ToString());
     }
-
-    private void OnLevelRegionEvent(ServerLevelRegion data)
-    {
-        UIService.Instance.HidePanel<GameView>();
-        SceneService.Instance.LoadThenInvoke($"GameScene_{data.RegionId}", () =>
-        {
-            Instantiate(ResourceService.Instance.LoadResource<GameObject>("Prefabs/EntityWorld"));
-            GameClient.Instance.Send(Protocol.EnterRegion, true);
-        });
-    }
-
-    private void OnLevelDungeonEvent(ServerLevelDungeon data)
-    {
-        UIService.Instance.HidePanel<GameView>();
-        SceneService.Instance.LoadThenInvoke($"GameScene_{data.RegionId}", () =>
-        {
-            Instantiate(ResourceService.Instance.LoadResource<GameObject>("Prefabs/EntityWorld"));
-            GameClient.Instance.Send(Protocol.EnterRegion, true);
-        });
-    }
+    
 
     private void OnPlayerEnterDungeonEvent(ServerPlayerEnterDungeon data)
     {
@@ -263,14 +241,9 @@ public class GameView : BaseView
     }
     
     
-    public void UpdatePlayerHealth(int current, int max)
+    public void UpdatePlayerHealth(float current, float max)
     {
-        hpLiquidMaterial.DOFloat((float)current / max, FillLevel, 0.1f);
-    }
-    
-    public void UpdatePlayerMana(int current, int max)
-    {
-        mpLiquidMaterial.DOFloat((float)current / max, FillLevel, 0.1f);
+        hpLiquidMaterial.DOFloat(current / max, FillLevel, 0.1f);
     }
 
     public void ShowSkillInfo(string message)
@@ -284,18 +257,12 @@ public class GameView : BaseView
         SkillInfoRect.gameObject.SetActive(false);
     }
     
-    public void UpdatePlayerExperience(int current, int max)
+    public void UpdatePlayerExperience(float current, float max)
     {
         if (ExSlider != null)
         {
-            ExSlider.DOValue((float)current / max, 0.1f);
+            ExSlider.DOValue(current / max, 0.1f);
         }
     }
-    
-    // 待完成的功能
-    // 1. 进入副本之后会在显示一个框，这个框会展示出所有玩家的蓝量血量，可以选中玩家放技能
-    // 2. 当遇到副本boss的时候会显示出dps
-    // 3. 左侧显示出正在进行的任务
-    
 }
 

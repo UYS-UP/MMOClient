@@ -162,44 +162,33 @@ public class FriendView : BaseView
         
         GroupDropdown.onValueChanged.AddListener(OnGroupSelected);
         
-        FriendModel.Instance.OnFriendGroupReceived += OnFriendGroupReceived;
-        FriendModel.Instance.OnFriendRequestReceived += OnFriendRequestReceived;
-        FriendModel.Instance.OnFriendReceived += OnFriendReceived;
-        
-        FriendModel.Instance.OnAddFriendResponseReceived += OnAddFriendResponseReceived;
-        
         FriendRequestFrameRect.gameObject.SetActive(false);
     }
-
-    private void Start()
-    {
-        Initialize();
-    }
-
+    
     private void BindPrivateItemUI(GameObject obj, ChatMessageData data)
     {
         var ui = obj.GetComponent<PrivateChatItemUI>();
         ui.Init(data.Content, data.SenderId == "1");
     }
 
-    private void Initialize()
-    {
-        foreach (var group in FriendModel.Instance.GetFriendGroups())
-        {
-            OnFriendGroupReceived(group);
-        }
-
-        foreach (var friend in FriendModel.Instance.GetFriends())
-        {
-            OnFriendReceived(friend);
-        }
-
-        foreach (var friendRequest in FriendModel.Instance.GetFriendRequests())
-        {
-            OnFriendRequestReceived(friendRequest);
-        }
-        ChatScrollView.Initialize(new List<ChatMessageData>(), BindPrivateItemUI);
-    }
+    // private void Initialize()
+    // {
+    //     foreach (var group in FriendModel.Instance.GetFriendGroups())
+    //     {
+    //         OnFriendGroupReceived(group);
+    //     }
+    //
+    //     foreach (var friend in FriendModel.Instance.GetFriends())
+    //     {
+    //         OnFriendReceived(friend);
+    //     }
+    //
+    //     foreach (var friendRequest in FriendModel.Instance.GetFriendRequests())
+    //     {
+    //         OnFriendRequestReceived(friendRequest);
+    //     }
+    //     ChatScrollView.Initialize(new List<ChatMessageData>(), BindPrivateItemUI);
+    // }
 
     private void OnFriendGroupReceived(NetworkFriendGroupData data)
     {
@@ -290,28 +279,25 @@ public class FriendView : BaseView
 
     public void ShowFriendOperation()
     {
-        GroupDropdown.ClearOptions();
-        indexToGroupIdMap.Clear();
-        int index = 0;
-        foreach (var group in FriendModel.Instance.GetFriendGroups())
-        {
-            var option = new TMP_Dropdown.OptionData(group.GroupName);
-            GroupDropdown.options.Add(option);
-            
-            // 建立索引到分组ID的映射
-            indexToGroupIdMap[index] = group.GroupId;
-            
-            // 如果是当前分组，设置选中状态
-            if (group.GroupId == currentGroupId)
-            {
-                GroupDropdown.value = index;
-            }
-            
-            index++;
-        }
-        
-        // 刷新显示的值
-        GroupDropdown.RefreshShownValue();
+        // GroupDropdown.ClearOptions();
+        // indexToGroupIdMap.Clear();
+        // int index = 0;
+        // foreach (var group in FriendModel.Instance.GetFriendGroups())
+        // {
+        //     var option = new TMP_Dropdown.OptionData(group.GroupName);
+        //     GroupDropdown.options.Add(option);
+        //     
+        //     indexToGroupIdMap[index] = group.GroupId;
+        //     
+        //     if (group.GroupId == currentGroupId)
+        //     {
+        //         GroupDropdown.value = index;
+        //     }
+        //     
+        //     index++;
+        // }
+        //
+        // GroupDropdown.RefreshShownValue();
         
     }
     
@@ -326,41 +312,36 @@ public class FriendView : BaseView
         }
         
         // 获取选中的分组ID
-        if (indexToGroupIdMap.TryGetValue(selectedIndex, out string targetGroupId))
-        {
-            if(currentGroupId == targetGroupId) return;
-            
-            // 调用修改分组的方法
-            FriendModel.Instance.AlterFriendGroup(currentFriendId, targetGroupId);
-            
-            // 更新当前分组ID
-            currentGroupId = targetGroupId;
-        }
+        // if (indexToGroupIdMap.TryGetValue(selectedIndex, out string targetGroupId))
+        // {
+        //     if(currentGroupId == targetGroupId) return;
+        //     
+        //     // 调用修改分组的方法
+        //     FriendModel.Instance.AlterFriendGroup(currentFriendId, targetGroupId);
+        //     
+        //     // 更新当前分组ID
+        //     currentGroupId = targetGroupId;
+        // }
     }
 
 
     private void OnEnterButtonClick()
     {
-        if (ToggleGroup.GetFirstActiveToggle() == AddFriendToggle)
-        {
-            // 触发添加好友
-            FriendModel.Instance.AddFriend(ActionInput.text);
-        }else if (ToggleGroup.GetFirstActiveToggle() == SearchFriendToggle)
-        {
-            // 触发搜索好友
-        }else if (ToggleGroup.GetFirstActiveToggle() == AddRemarkToggle)
-        {
-            // 触发添加分组
-        }
+        // if (ToggleGroup.GetFirstActiveToggle() == AddFriendToggle)
+        // {
+        //     // 触发添加好友
+        //     FriendModel.Instance.AddFriend(ActionInput.text);
+        // }else if (ToggleGroup.GetFirstActiveToggle() == SearchFriendToggle)
+        // {
+        //     // 触发搜索好友
+        // }else if (ToggleGroup.GetFirstActiveToggle() == AddRemarkToggle)
+        // {
+        //     // 触发添加分组
+        // }
     }
 
     private void OnDestroy()
     {
-        FriendModel.Instance.OnFriendGroupReceived -= OnFriendGroupReceived;
-        FriendModel.Instance.OnFriendRequestReceived -= OnFriendRequestReceived;
-        FriendModel.Instance.OnFriendReceived -= OnFriendReceived;
-        
-        FriendModel.Instance.OnAddFriendResponseReceived -= OnAddFriendResponseReceived;
         GroupDropdown.onValueChanged.RemoveListener(OnGroupSelected);
     }
     

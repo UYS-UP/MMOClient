@@ -14,10 +14,10 @@ public class DialogueModel : IDisposable
     private QuestDialogueGroup currentQuestGroup;
     private StageDialogue currentStage;
     public DialogueNode CurrentNode { get; set; }
-    public string CurrentNpcId { get; set; }
+    public int CurrentNpcId { get; set; }
 
     // NPC 对话缓存：npcId → dialogueData
-    private readonly Dictionary<string, NpcDialogueData> npcDialogueCache = new();
+    private readonly Dictionary<int, NpcDialogueData> npcDialogueCache = new();
 
     public event Action<bool> OnDialogueTip;
     public event Action<DialogueNode> OnNodeChanged;
@@ -41,7 +41,7 @@ public class DialogueModel : IDisposable
     {
         if (CurrentNpcId == e.NpcId)
         {
-            CurrentNpcId = null;
+            CurrentNpcId = -1;
             OnDialogueTip?.Invoke(false);
         }
     }
@@ -52,7 +52,7 @@ public class DialogueModel : IDisposable
     /// </summary>
     public void StartDialogue()
     {
-        if (string.IsNullOrEmpty(CurrentNpcId)) return; 
+        if (CurrentNpcId == -1) return; 
 
         var npcData = LoadNpcDialogue(CurrentNpcId);
         if (npcData == null)
@@ -137,7 +137,7 @@ public class DialogueModel : IDisposable
     // =======================================================================
 
     private (QuestDialogueGroup group, StageDialogue stage)
-        SelectBestDialogueStage(NpcDialogueData npcData, string npcId)
+        SelectBestDialogueStage(NpcDialogueData npcData, int npcId)
     {
         foreach (var quest in questModel.GetAllQuests())
         {
@@ -153,7 +153,7 @@ public class DialogueModel : IDisposable
         return (null, null);
     }
 
-    private StageDialogue FindMatchingStage(List<StageDialogue> stages, QuestNode quest, string npcId)
+    private StageDialogue FindMatchingStage(List<StageDialogue> stages, QuestNode quest, int npcId)
     {
         StageDialogue Try(string cond) =>
             stages.FirstOrDefault(s => 
@@ -195,7 +195,7 @@ public class DialogueModel : IDisposable
     // 加载 NPC 对话文件
     // =======================================================================
 
-    private NpcDialogueData LoadNpcDialogue(string npcId)
+    private NpcDialogueData LoadNpcDialogue(int npcId)
     {
         if (npcDialogueCache.TryGetValue(npcId, out var cached))
             return cached;

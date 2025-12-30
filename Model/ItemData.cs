@@ -2,6 +2,7 @@
     using MessagePack;
     using UnityEngine;
 
+    
     public enum ItemType : byte
     {
         Equip = 0,
@@ -15,14 +16,6 @@
         Uncommon = 1,
         Rare = 2,
         Epic = 3
-    }
-
-    [MessagePackObject]
-    public class ItemInstance
-    {
-        
-        [Key(1)] public ItemData ItemData { get; set; }    // 物品数据
-        [Key(2)] public DateTime AddedTime { get; set; }   // 添加时间
     }
 
     [MessagePackObject]
@@ -80,19 +73,4 @@
         [Key(9)] public EffectType EffectType { get; set; }
         [Key(10)] public int EffectValue { get; set; }
         [Key(11)] public float Cooldown { get; set; }
-    }
-    
-    [MessagePackObject]
-    public class DroppedItemData
-    {
-        [Key(0)] public int DropTick { get; set; }
-        [Key(1)] public ItemData Data { get; set; }
-        [Key(2)] public Vector3 DropPos { get; set; }
-
-        public DroppedItemData(int tick, ItemData data, Vector3 dropPos)
-        {
-            DropTick = tick;
-            Data = data;
-            DropPos = dropPos;
-        }
     }

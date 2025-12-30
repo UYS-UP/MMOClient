@@ -143,14 +143,14 @@ public class LocalMoveComponent : BaseComponent
 
     private void SendInput(float yaw, Vector3 dir, int tick)
     {
-        var packet = new ClientPlayerMove
+        var packet = new ClientCharacterMove
         {
             ClientTick = tick,
             Position = HelperUtility.Vector3ToShortArray(entity.transform.position),
             Direction = HelperUtility.Vector3ToSbyteArray(dir),
             Yaw = HelperUtility.YawToShort(yaw),
         };
-        GameClient.Instance.Send(Protocol.PlayerMove, packet);
+        GameClient.Instance.Send(Protocol.CS_CharacterMove, packet);
     }
 
     public void ReconcileTo(bool isValid, int ackTick)

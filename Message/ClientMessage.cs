@@ -28,11 +28,11 @@ using UnityEngine;
  public class ClientCreateCharacter
  {
      [Key(0)] public string CharacterName { get; set; }
-     [Key(1)] public ProfessionType Profession { get; set; }
+     [Key(1)] public int ServerId { get; set; }
  }
 
  [MessagePackObject]
- public class ClientPlayerMove
+ public class ClientCharacterMove
  {
      [Key(0)] public int ClientTick;
      [Key(1)] public short[] Position;
@@ -41,11 +41,11 @@ using UnityEngine;
  }
 
  [MessagePackObject]
- public class ClientPlayerReleaseSkill
+ public class ClientCharacterCastSkill
  {
      [Key(0)] public int ClientTick;
      [Key(1)] public int SkillId;
-     
+
      [Key(2)] public SkillCastInputType InputType;
      [Key(3)] public Vector3 TargetPosition;
      [Key(4)] public Vector3 TargetDirection;
@@ -54,7 +54,7 @@ using UnityEngine;
 
 
  [MessagePackObject]
- public class ClientPlayerQueryInventory
+ public class ClientQueryInventory
  {
      [Key(0)] public int StartSlot;
      [Key(1)] public int EndSlot;
@@ -98,6 +98,12 @@ using UnityEngine;
  [MessagePackObject]
  public class ClientEnterGame { 
      [Key(0)] public string CharacterId; 
+ }
+
+ [MessagePackObject]
+ public class ClientEnterRegion
+ {
+     [Key(0)] public int RegionId;
  }
 
  [MessagePackObject]

@@ -8,7 +8,7 @@ using UnityEngine;
 /// </summary>
 public class TeamModel : IDisposable
 {
-    private TeamBaseData teamData;
+    private TeamData teamData;
     private int pendingInviteTeamId = -1;
     private string pendingInviteMessage;
     
@@ -21,7 +21,7 @@ public class TeamModel : IDisposable
     /// <summary>
     /// 获取当前队伍
     /// </summary>
-    public TeamBaseData CurrentTeamData => teamData;
+    public TeamData CurrentTeamData => teamData;
 
     /// <summary>
     /// 是否在队伍中
@@ -30,33 +30,17 @@ public class TeamModel : IDisposable
 
     public TeamModel()
     {
-        ProtocolRegister.Instance.OnCreateDungeonTeamEvent += OnCreateDungeonTeamEvent;
-        ProtocolRegister.Instance.OnTeamInvitePlayerEvent += OnTeamInvitePlayerEvent;
-        ProtocolRegister.Instance.OnPlayerEnterTeamEvent += OnPlayerEnterTeamEvent;
+
     }
     
 
     /// <summary>
     /// 尝试获取队伍
     /// </summary>
-    public bool TryGetTeam(out TeamBaseData value)
+    public bool TryGetTeam(out TeamData value)
     {
         value = teamData;
         return teamData != null;
-    }
-
-    /// <summary>
-    /// 尝试获取指定类型的队伍
-    /// </summary>
-    public bool TryGetTeam<T>(out T value) where T : TeamBaseData
-    {
-        if (teamData is T networkTeam)
-        {
-            value = networkTeam;
-            return value != null;
-        }
-        value = null;
-        return false;
     }
 
     /// <summary>
@@ -68,27 +52,7 @@ public class TeamModel : IDisposable
         pendingInviteMessage = data.Message;
         OnInviteReceived?.Invoke(pendingInviteMessage);
     }
-
-    private void OnPlayerEnterTeamEvent(ServerPlayerEnterTeam data)
-    {
-        if (!data.Success)
-        {
-            Debug.LogError(data.Message);
-            return;
-        }
-
-        teamData = data.Team;
-
-        // 自己加入：通知自己进队（用于跳转到组队面板等）
-        if (data.Player == PlayerModel.Instance.Player.PlayerId)
-        {
-            OnTeamJoined?.Invoke();
-            return;
-        }
-
-        // 其他人加入：只通知队伍更新（用于刷新队员列表）
-        OnTeamUpdated?.Invoke();
-    }
+    
     
     /// <summary>
     /// 清除待处理的邀请
@@ -103,7 +67,7 @@ public class TeamModel : IDisposable
     {
         if (pendingInviteTeamId != -1)
         {
-            GameClient.Instance.Send(Protocol.AcceptInvite, pendingInviteTeamId);
+            GameClient.Instance.Send(Protocol.CS_AcceptInvite, pendingInviteTeamId);
             ClearPendingInvite();
         }
     }
@@ -112,26 +76,11 @@ public class TeamModel : IDisposable
     {
         ClearPendingInvite();
     }
-
-    private void OnCreateDungeonTeamEvent(ServerCreateDungeonTeam data)
-    {
-        Debug.Log(data.Team.TeamId);
-        if (data.Success)
-        {
-            teamData = data.Team;
-            OnTeamCreated?.Invoke(teamData.TeamMembers);
-            return;
-        }
-      
-        
-    }
-
+    
 
     public void Dispose()
     {
-        ProtocolRegister.Instance.OnCreateDungeonTeamEvent -= OnCreateDungeonTeamEvent;
-        ProtocolRegister.Instance.OnTeamInvitePlayerEvent -= OnTeamInvitePlayerEvent;
-        ProtocolRegister.Instance.OnPlayerEnterTeamEvent -= OnPlayerEnterTeamEvent;
+
     }
 }
 

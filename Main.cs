@@ -16,7 +16,7 @@ public class Main : MonoBehaviour
     private void Start()
     {
         GameClient.Instance.Connect().Forget();
-        UIService.Instance.ShowView<LogView>(layer: UILayer.System, onBegin: CustomLog.Initialize);
+        // UIService.Instance.ShowView<LogView>(layer: UILayer.System, onBegin: CustomLog.Initialize);
         UIService.Instance.ShowView<LoginView>(layer: UILayer.Normal);
 
     }

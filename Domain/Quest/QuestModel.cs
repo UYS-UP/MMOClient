@@ -3,21 +3,6 @@ using System.Collections.Generic;
 using MessagePack;
 using UnityEngine;
 
-
-[MessagePackObject]
-public class QuestProgressUpdate
-{
-    [Key(0)] public string NodeId;
-    [Key(1)] public bool IsCompleted;
-    [Key(2)] public List<(int, QuestObjective)> Objectives;
-}
-
-[MessagePackObject]
-public class ServerQuestProgressUpdate
-{
-    [Key(0)] public List<QuestProgressUpdate> QuestUpdates;
-}
-
 public class QuestModel : IDisposable
 {
     public event Action<QuestNode> OnQuestAdded;
@@ -31,17 +16,18 @@ public class QuestModel : IDisposable
  
     public QuestModel()
     {
-        GameClient.Instance.RegisterHandler(Protocol.QuestAccept, QuestAcceptSync);
-        GameClient.Instance.RegisterHandler(Protocol.QuestCompleted, QuestCompletedSync);
-        GameClient.Instance.RegisterHandler(Protocol.QuestUpdated, QuestUpdatedSync);
-        GameClient.Instance.RegisterHandler(Protocol.QuestListSync, QuestListSync);
+        GameClient.Instance.RegisterHandler(Protocol.SC_QuestAccepted, QuestAcceptSync);
+        GameClient.Instance.RegisterHandler(Protocol.SC_QuestCompleted, QuestCompletedSync);
+        GameClient.Instance.RegisterHandler(Protocol.SC_QuestUpdated, QuestUpdatedSync);
+        GameClient.Instance.RegisterHandler(Protocol.SC_QuestListSync, QuestListSync);
     }
 
     private void OnDisable()
     {
-        GameClient.Instance.UnregisterHandler(Protocol.QuestAccept);
-        GameClient.Instance.UnregisterHandler(Protocol.QuestCompleted);
-        GameClient.Instance.UnregisterHandler(Protocol.QuestUpdated);
+        GameClient.Instance.UnregisterHandler(Protocol.SC_QuestAccepted);
+        GameClient.Instance.UnregisterHandler(Protocol.SC_QuestCompleted);
+        GameClient.Instance.UnregisterHandler(Protocol.SC_QuestUpdated);
+        GameClient.Instance.UnregisterHandler(Protocol.SC_QuestListSync);
     }
 
     public bool TryGetQuestNode(string questNodeId, out QuestNode questNode)
@@ -102,7 +88,7 @@ public class QuestModel : IDisposable
         
     }
 
-    public void RequestAdvanceQuestNode(string currentNpcId, string optionAdvanceToQuestNode)
+    public void RequestAdvanceQuestNode(int currentNpcId, string optionAdvanceToQuestNode)
     {
         // 发给服务端推进任务
     }

@@ -14,7 +14,7 @@ public struct Snapshot
 
 public abstract class EntityBase : MonoBehaviour
 {
-    [SerializeField] private string entityId;
+    [SerializeField] private int entityId;
     [SerializeField] private EntityType entityType;
     [SerializeField] private bool isLocal;
 
@@ -23,7 +23,7 @@ public abstract class EntityBase : MonoBehaviour
     public NetworkEntity NetworkEntity { get; set; }
     public Snapshot CurrentSnapshot { get; set; }
     public EntityHFSM FSM { get; private set; }
-    public string EntityId => entityId;
+    public int EntityId => entityId;
     public EntityType EntityType => entityType;
     public bool IsLocal => isLocal;
 
@@ -39,7 +39,7 @@ public abstract class EntityBase : MonoBehaviour
         return false;
     }
     
-    public virtual void Initialize(string id, EntityType type, bool local)
+    public virtual void Initialize(int id, EntityType type, bool local)
     {
         entityId = id;
         entityType = type;

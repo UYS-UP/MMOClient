@@ -3,15 +3,15 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class CharacterInfoController : IDisposable
+public class NavigationController : IDisposable
 {
     private readonly StorageModel storageModel;
-    private readonly CharacterInfoView characterInfoView;
+    private readonly NavigationView navigationView;
     
-    public CharacterInfoController(CharacterInfoView characterInfoView)
+    public NavigationController(NavigationView navigationView)
     {
         storageModel = GameContext.Instance.Get<StorageModel>();
-        this.characterInfoView = characterInfoView;
+        this.navigationView = navigationView;
         RegisterEvents();
     }
     
@@ -39,17 +39,17 @@ public class CharacterInfoController : IDisposable
 
     private void OnSlotsChanged(IReadOnlyList<SlotKey> slots)
     {
-        characterInfoView.UpdateBatchSlots(slots);
+        navigationView.UpdateSlotsContent(slots);
     }
 
     private void OnSlotChanged(SlotKey slot)
     {
-        characterInfoView.UpdateSlotContent(slot);
+        navigationView.UpdateSlotContent(slot);
     }
 
     private void OnInventoryResized(int newSize)
     {
-        characterInfoView.ResizeInventory(newSize);
+        navigationView.ResizeInventory(newSize);
     }
 
     #endregion

@@ -45,9 +45,6 @@ public class GameClient : SingletonMono<GameClient>
       net.OnError += e => CustomLog.LogError($"Net error : {e?.Message}");
    }
    
-   public string GetAccountId() => accountId;
-   public void SetAccountId(string id) => accountId = id;
-
    public void Send<T>(Protocol protocolId, T payload)
    {
       // CustomLog.Debug("Send");

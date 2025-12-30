@@ -695,12 +695,10 @@ public class InfiniteScrollView<T> : MonoBehaviour
     protected virtual void MarkDirty(DirtyFlags flags)
     {
         dirtyFlags |= flags;
-
-        // 关键：所有更新都丢进队列，帧末统一处理
+        
         if (!isBatchingFrame)
         {
             isBatchingFrame = true;
-            // 使用 LateUpdate 比协程更可靠（不会被 Canvas 重建打断）
             batchedActions.Add(CommitBatchedUpdates);
         }
     }

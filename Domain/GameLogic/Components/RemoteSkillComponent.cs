@@ -17,7 +17,6 @@ public class RemoteSkillComponent : BaseComponent
 
     public void CastSkill(int skillId)
     {
-        Debug.Log("Remote CastSkill" + skillId);
         entity.FSM.Ctx.RemoteRequestCast(skillId);
     }
     

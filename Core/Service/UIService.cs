@@ -122,7 +122,6 @@ public class UIService : SingletonMono<UIService>
     /// <summary>
     /// 添加面板
     /// </summary>
-    /// <param name="panelType">面板类型</param>
     /// <param name="layer">面板层级</param>
     /// <param name="worldSpace">是否使用世界空间</param>
     public void AddPanel<T>(UILayer layer = UILayer.Normal, bool worldSpace = false)  where T : BaseView
@@ -131,14 +130,14 @@ public class UIService : SingletonMono<UIService>
         if (panelDict.ContainsKey(panelName)) return;
         var parent = worldSpace ?  WorldCanvasRect : layerContainers[layer];
         GameObject panelObj = Object.Instantiate(
-            Resources.Load<GameObject>($"Prefabs/UI/View/{panelName}"), 
+            Resources.Load<GameObject>($"Prefabs/UI/Views/{panelName}"), 
             parent, 
             false
         );
         BaseView view = panelObj.GetComponent<BaseView>();
-        view.layer = layer;
         panelDict[panelName] = view;
         view.canvasGroup.alpha = 0;
+        ChangeLayer<T>(layer);
     }
 
     public T GetView<T>(UILayer layer = UILayer.Normal) where T : BaseView

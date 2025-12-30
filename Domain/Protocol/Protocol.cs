@@ -5,68 +5,80 @@ using UnityEngine;
 public enum Protocol : ushort
 {
     Heart,
-    Login,
-    Register,
-    CreateCharacter,
+    SC_Login,
+    SC_Register,
+    SC_CreateCharacter,
 
+    SC_EnterRegion,
+    SC_LevelDungeon,
+    SC_EnterDungeon,
+
+    SC_EntitySpawn,
+    SC_EntityDespawn,
+    SC_CharacterMove,
+    SC_EntityMove,
+    SC_CharacterCastSkill,
+    SC_EntityCastSkill,
+    SC_EntityDeath,
+    SC_ApplyBuff,
+    SC_EntityDamage,
+ 
+
+    SC_DungeonLootInfo,
+    SC_DungeonLootChoice,
+    SC_QuestListSync,
+    SC_QuestUpdated,
+    SC_QuestCompleted,
+    SC_QuestAccepted,
+
+    SC_QueryInventory,
+    SC_AddInventoryItem,
+    SC_SwapStorageSlot,
+
+    SC_FriendListSync,
+
+    SC_TeamCreated,
+    SC_StartDungeon,
+    SC_TeamQuited,
+    SC_EnterTeam,
+
+
+    CS_Login,
+    CS_Register,
+    CS_CreateCharacter,
+
+    CS_EnterRegion,
+    CS_EnterGame,
+    CS_EnterDungeon,
+    CS_StartDungeon,
+    CS_LevelDungeon,
+
+
+    CS_CharacterMove,
+    CS_CharacterCastSkill,
+    CS_DungeonLootChoice,
+
+
+    CS_QueryInventory,
+    CS_SwapStorageSlot,
+    CS_UseItem,
+
+    CS_CreateDungeonTeam,
+    CS_TeamInvite,
+    CS_AcceptInvite,
+
+    CS_AddFriend,
+    CS_DeleteFriend,
+    CS_FriendRequest,
+    CS_FriendChat,
+    CS_FriendRemark,
+    CS_MoveFriendToGroup,
+    CS_AlterFriendGroup,
+    CS_AddFriendGroup,
+
+    CS_AcceptQuest,
+    CS_SubmitQuest,
     
-    EnterGame,
-    EnterRegion,
-    LevelRegion,
     
-    CreateDungeonTeam,
-    StartDungeon,
-    LoadDungeon,
-    EnterDungeon,
-    LevelDungeon,
-    DungeonLootChoice,
-    DungeonLootInfo,
-
-    EntitySpawn,
-    EntityDespawn,
-    EntityMove,
-    PlayerMove,
-    EntityReleaseSkill,
-    PlayerReleaseSkill,
-    ApplyBuff,
-    
-    MonsterDeath,
-    EntityDamage,
-    
-    QueryInventory,
-    AddInventoryItem,
-    SwapStorageSlot,
-    
-    QuestListSync,
-    QuestAccept,
-    QuestCompleted,
-    QuestUpdated,
-    
-
-
-    InvitePlayer,
-
-    AcceptInvite,
-    EnterTeam,
-    ChatMessage,
-    SkillTimelineEvent,
-    
-    AddFriend,
-    AddFriendRequest,
-    HandleFriendRequest,
-    AddFriendGroup,
-    FriendListSync,
-
-
-}
-
-
-
-public enum StateCode
-{
-    Success = 200,          // 成功
-    BadRequest = 400,      // 错误请求
-    Unauthorized = 401,    // 未授权
-    NotFound = 404,        // 未找到
-    InternalError = 500,   // 服务器内部错误
+    GM_AddItem
 }
