@@ -179,7 +179,7 @@ public class GameView : BaseView
         foreach (var item in items)
         {
             var lootChoiceUI = Instantiate(LootChoiceUI, voteContent, false).GetComponent<LootChoiceUI>();
-            lootChoices[item.ItemId] = lootChoiceUI;
+            lootChoices[item.InstanceId] = lootChoiceUI;
             lootChoiceUI.Initialize(item);
         }
     }

@@ -25,6 +25,20 @@ using UnityEngine;
  }
 
  [MessagePackObject]
+ public class ClientUseItem
+ {
+     [Key(0)] public SlotKey Slot { get; set; }
+     [Key(1)] public string InstanceId { get; set; }
+ }
+
+ [MessagePackObject]
+ public class ClientDropItem
+ {
+     [Key(0)] public SlotKey Slot { get; set; }
+     [Key(1)] public string InstanceId { get; set; }
+ }
+
+ [MessagePackObject]
  public class ClientCreateCharacter
  {
      [Key(0)] public string CharacterName { get; set; }

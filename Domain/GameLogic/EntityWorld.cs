@@ -54,7 +54,7 @@ public partial class EntityWorld : MonoBehaviour
             entityModel.CreateEntity<RemoteMonsterEntity>(data.SpawnEntity);
         }else if (data.SpawnEntity.EntityType == EntityType.Character)
         {
-            if (data.SpawnEntity is NetworkCharacter character && playerModel.IsLocal(character.PlayerId))
+            if (data.SpawnEntity is NetworkCharacter character && entityModel.CharacterId == character.CharacterId)
             {
                 entityModel.CreateEntity<LocalRoleEntity>(character, true);
                 return;

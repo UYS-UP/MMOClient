@@ -35,6 +35,7 @@ public class GameSceneController  : IDisposable
         entityModel.OnEntityHit += OnEntityHit;
         
         GameClient.Instance.RegisterHandler(Protocol.SC_EnterRegion, HandleEnterRegion);
+        GameClient.Instance.RegisterHandler(Protocol.SC_EnterGame, HandleEnterGame);
     }
 
     private void UnregisterEvents()
@@ -53,6 +54,14 @@ public class GameSceneController  : IDisposable
         InputBindService.Instance.UIIsOpen = true;
         UIService.Instance.ShowView<DialogueView>();
         dialogueModel.StartDialogue();
+    }
+
+    private void HandleEnterGame(GamePacket packet)
+    {
+        var data = packet.DeSerializePayload<ServerEnterGame>();
+        entityModel.CharacterId = data.CharacterId;
+        gameSceneView.LoadRegionScene(data.MapId);
+        storageModel.PreloadInventory();
     }
 
     private void HandleEnterRegion(GamePacket packet)

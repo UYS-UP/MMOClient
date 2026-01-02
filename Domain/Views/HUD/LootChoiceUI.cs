@@ -21,7 +21,7 @@ public class LootChoiceUI : MonoBehaviour
     
     public void Initialize(ItemData item)
     {
-        itemId = item.ItemId;
+        itemId = item.InstanceId;
         RollButton.onClick.AddListener(() =>
         {
             GameClient.Instance.Send(Protocol.CS_DungeonLootChoice, new ClientDungeonLootChoice

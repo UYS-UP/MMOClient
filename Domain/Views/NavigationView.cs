@@ -36,13 +36,12 @@ public class NavigationView : BaseView
     {
         ProfileView.gameObject.SetActive(false);
         InventoryView.gameObject.SetActive(true);
-
-        InventoryView.OpenInventory(maxSize);
+        controller.ApplyFilter(string.Empty, QualityType.None, ItemType.None);
     }
     
-    private void OnSortButtonClick()
+    public void ResetScrollPosition()
     {
-        // 排序
+        InventoryView.ResetScrollPosition();
     }
     
     private void OnDestroy()
@@ -50,25 +49,19 @@ public class NavigationView : BaseView
         controller?.Dispose();
     }
 
-    public void UpdateSlotsContent(IReadOnlyList<SlotKey> slots)
-    {
-        InventoryView.UpdateSlotsContent(slots);
-    }
-
     public void UpdateSlotContent(SlotKey slot)
     {
         InventoryView.UpdateSlotContent(slot);
     }
-
-    public void ResizeInventory(int newSize)
-    {
-        InventoryView.ResizeInventory(newSize);
-    }
-    
     
     
     public void RequestSwap(SlotKey slotKey, SlotKey targetSlotKey)
     {
         controller.RequestSwap(slotKey, targetSlotKey);
+    }
+
+    public void UpdateDisplayList(List<SlotKey> displayList)
+    {
+        InventoryView.UpdateDisplayList(displayList);
     }
 }

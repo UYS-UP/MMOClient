@@ -203,18 +203,10 @@ public class ServerDungeonTeamInvite
 
 
 [MessagePackObject]
-public class ServerPlayerEnterGame
+public class ServerEnterGame
 {
-    [Key(0)] public NetworkEntity PlayerEntity;
-
-    public ServerPlayerEnterGame()
-    {
-    }
-
-    public ServerPlayerEnterGame(NetworkEntity playerEntity)
-    {
-        PlayerEntity = playerEntity;
-    }
+    [Key(0)] public string CharacterId;
+    [Key(1)] public int MapId;
 }
 
 [MessagePackObject]

@@ -22,36 +22,63 @@ public class NavigationController : IDisposable
     
     private void RegisterEvents()
     {
-        storageModel.OnSlotsChanged += OnSlotsChanged;
         storageModel.OnSlotChanged += OnSlotChanged;
-        storageModel.OnInventoryResized += OnInventoryResized;
     }
 
     private void UnregisterEvents()
     {
-        storageModel.OnSlotsChanged -= OnSlotsChanged;
         storageModel.OnSlotChanged -= OnSlotChanged;
-        storageModel.OnInventoryResized -= OnInventoryResized;
     }
+
+    public void ApplyFilter(string searchName, QualityType qualityFilter, ItemType itemFilter)
+    {
+        var displayList = storageModel.GetFilteredSlots(
+            SlotContainerType.Inventory, 
+            searchName, 
+            qualityFilter, 
+            itemFilter
+        );
+        
+        navigationView.UpdateDisplayList(displayList);
+        navigationView.ResetScrollPosition();
+    }
+    
+    public List<ItemActionInfo> GetActionsForItem(SlotKey slot, ItemData item)
+    {
+        var list = new List<ItemActionInfo>();
+        list.Add(new ItemActionInfo(item.ItemType == ItemType.Equip ? "装备" : "使用", () => RequestUseItem(slot, item)));
+        list.Add(new ItemActionInfo("丢弃", () => RequestDropItem(slot, item), true));
+        return list;
+    }
+    
+    private void RequestUseItem(SlotKey slot, ItemData item)
+    {
+        GameClient.Instance.Send(Protocol.CS_UseItem, new ClientUseItem
+        {
+            Slot = slot,
+            InstanceId = item.InstanceId
+        });
+    }
+
+    private void RequestDropItem(SlotKey slot, ItemData item)
+    {
+        GameClient.Instance.Send(Protocol.CS_DropItem, new ClientDropItem
+        {
+            Slot = slot,
+            InstanceId = item.InstanceId
+        });
+    }
+    
     
 
     #region StorageModel Events
-
-    private void OnSlotsChanged(IReadOnlyList<SlotKey> slots)
-    {
-        navigationView.UpdateSlotsContent(slots);
-    }
+    
 
     private void OnSlotChanged(SlotKey slot)
     {
         navigationView.UpdateSlotContent(slot);
     }
-
-    private void OnInventoryResized(int newSize)
-    {
-        navigationView.ResizeInventory(newSize);
-    }
-
+    
     #endregion
 
     public bool GetSlotItem(SlotKey slot, out ItemData value)
@@ -63,6 +90,7 @@ public class NavigationController : IDisposable
     {
         storageModel.RequestSwap(slotKey, targetSlotKey);
     }
+
 
 
 }

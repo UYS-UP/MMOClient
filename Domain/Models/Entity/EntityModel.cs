@@ -12,6 +12,7 @@ public class EntityModel :  IDisposable
     private readonly EntityPrefabConfig prefabConfig = ResourceService.Instance.LoadResource<EntityPrefabConfig>("Data/EntityPrefabConfig");
     private readonly Dictionary<int, EntityBase> entities = new Dictionary<int, EntityBase>();
     private LocalRoleEntity localEntity;
+    public string CharacterId { get; set; }
     
     public event Action<int> OnEntityCreated;
     

@@ -82,14 +82,6 @@ public class DungeonView : BaseView
             dungeonToggles[0].isOn = false;
             dungeonToggles[0].isOn = true;
         }
-        createButton.onClick.AddListener(() =>
-        {
-            GameClient.Instance.Send(Protocol.CS_CreateDungeonTeam, new ClientCreateDungeonTeam
-            {
-                TeamName = "副本大王",
-                TemplateId = currentDungeon
-            });
-        });
         enterDungeonButton.onClick.AddListener(() =>
         {
             Debug.Log("Enter Dungeon");

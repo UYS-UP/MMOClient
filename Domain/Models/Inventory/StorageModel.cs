@@ -22,7 +22,7 @@ public struct SlotKey : IEquatable<SlotKey>
         Container = container;
         Index = index;
     }
-
+    
     public override bool Equals(object obj)
     {
         return obj is SlotKey slot && Equals(slot);
@@ -102,9 +102,10 @@ public class StorageModel :  IDisposable
 
     public void SetMaxSize(int maxSize)
     {
-        if (maxSize > MaxSize)
+        if (maxSize != MaxSize)
         {
             MaxSize = maxSize;
+            Debug.Log("Max size changed to: " + MaxSize);
             OnInventoryResized?.Invoke(MaxSize);
         }
     }
@@ -163,17 +164,11 @@ public class StorageModel :  IDisposable
     {
         var data = packet.DeSerializePayload<ServerAddItem>();
         if (data == null) return;
-        SetMaxSize(data.MaxSize);
-        var updatedSlots = new List<SlotKey>();
         foreach (var kv in data.Items)
         {
-            Debug.Log(kv.Key + ": " + kv.Value.ItemName + "_" + kv.Value.ItemCount);
             SetOrRemove(kv.Key, kv.Value);
-            updatedSlots.Add(kv.Key);
+            OnItemAcquired?.Invoke();
         }
-
-        OnItemAcquired?.Invoke();
-        OnSlotsChanged?.Invoke(updatedSlots);
     }
 
     public bool TryGetItem(SlotKey slot, out ItemData item)
@@ -292,8 +287,69 @@ public class StorageModel :  IDisposable
         SetOrRemove(p.To, p.PrevB);
     }
 
+    public List<SlotKey> GetFilteredSlots(SlotContainerType container, string searchName, QualityType qualityFilter,
+        ItemType typeFilter)
+    {
+        var matchedSlots = new List<SlotKey>();
+        var emptySlots = new List<SlotKey>();
+        int limit = MaxSize > 0 ? MaxSize : 0;
+        
+        bool isDefaultMode = string.IsNullOrEmpty(searchName) 
+                             && qualityFilter == QualityType.None 
+                             && typeFilter == ItemType.None;
+
+        if (isDefaultMode)
+        {
+            for (int i = 0; i < limit; i++)
+            {
+                matchedSlots.Add(new SlotKey(container, i));
+            }
+            return matchedSlots;
+        }
+        
+
+        for (int i = 0; i < limit; i++)
+        {
+            var key = new SlotKey(container, i);
+            
+            // 检查该槽位是否有物品
+            if (storage.TryGetValue(key, out var item) && item != null)
+            {
+                // --- 有物品，进行筛选 ---
+                // 1. 名称筛选
+                bool isMatch = !(!string.IsNullOrEmpty(searchName) && 
+                                 !item.ItemName.Contains(searchName));
+
+  
+                
+                // 2. 品质筛选
+                if (isMatch && qualityFilter != QualityType.None && item.QuantityType != qualityFilter) 
+                {
+                    isMatch = false;
+                }
+                
+                // 3. 类型筛选
+                if (isMatch && typeFilter != ItemType.None && item.ItemType != typeFilter) 
+                {
+                    isMatch = false;
+                }
+
+                if (isMatch)
+                {
+                    matchedSlots.Add(key);
+                }
+            }
+            else
+            {
+                emptySlots.Add(key);
+            }
+        }
+        matchedSlots.AddRange(emptySlots);
+        return matchedSlots;
+    }
+
     public void Dispose()
     {
-        // TODO release managed resources here
+        storage.Clear();
     }
 }

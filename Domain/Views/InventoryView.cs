@@ -1,13 +1,13 @@
-﻿
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Text;
 using DG.Tweening;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public class InventoryView : MonoBehaviour
 {
-    
+
     private UnityEngine.RectTransform InventoryContainerRect;
     private UnityEngine.RectTransform CharacterContainerRect;
     private UnityEngine.UI.ScrollRect InventoryScrollView;
@@ -19,6 +19,8 @@ public class InventoryView : MonoBehaviour
     private TMPro.TextMeshProUGUI EffectText;
     private TMPro.TextMeshProUGUI DescriptionText;
     private UnityEngine.RectTransform ButtonContainerRect;
+    private UnityEngine.RectTransform EquipContainerRect;
+    private UnityEngine.RectTransform QuickBarContainerRect;
 
     private void BindComponent()
     {
@@ -46,58 +48,65 @@ public class InventoryView : MonoBehaviour
 
         ButtonContainerRect = root.Find("InventoryContainer/ItemDetailContainer/ButtonContainer") as RectTransform;
 
+        EquipContainerRect = root.Find("CharacterContainer/EquipContainer") as RectTransform;
+
+        QuickBarContainerRect = root.Find("CharacterContainer/QuickBarContainer") as RectTransform;
+
     }
 
 
-
-    [Header("背包格子设置")]
+    [Header("Slot Settings")]
     public GameObject slotPrefab;
     public int columns = 6;
     public float slotSize = 80f;
     public float spacing = 5f;
 
-
-    private readonly Dictionary<int, BackpackSlotUI> activeSlots = new Dictionary<int, BackpackSlotUI>();
-    private readonly Queue<BackpackSlotUI> freeSlots = new();
-    private readonly HashSet<int> pendingUpdateIndices = new HashSet<int>();
-    private readonly List<int> updateBatchList = new List<int>();
-    private bool updateScheduled = false;
-    private Coroutine scrollCoroutine;
-    private int lastFirstVisible = -1;
-    private int lastLastVisible = -1;
-    private int totalSlots = 0;
-
-    
     [Header("Action Buttons Settings")] 
     public GameObject actionButtonPrefab;
 
+    public Image DragIcon;
+    public RectTransform DragIconRect;
+    
+    private NavigationController controller;
+    
+    private List<SlotKey> currentDisplayList = new List<SlotKey>();
+    
+    private readonly Dictionary<int, BackpackSlotUI> activeSlots = new Dictionary<int, BackpackSlotUI>();
+    private readonly Queue<BackpackSlotUI> freeSlots = new Queue<BackpackSlotUI>();
+    private readonly HashSet<SlotKey> pendingUpdateKeys = new HashSet<SlotKey>();
+    private bool updateScheduled = false;
+    
+    private readonly BackpackSlotUI[] equipSlots = new BackpackSlotUI[6];
+    private readonly BackpackSlotUI[] quickSlots = new BackpackSlotUI[3];
+    
+    private int currentFirstVisible = -1;
+    private int currentLastVisible = -1;
+    private int totalDisplaySlots = 0;
     
     private float detailVisibleX;
     private float detailHiddenX;
     private bool isDetailOpen = false;
     private List<ItemDetailActionButton> actionButtons = new List<ItemDetailActionButton>();
-    
-    
-    private NavigationController controller;
 
     private void Awake()
     {
         BindComponent();
-        detailVisibleX = ItemDetailContainerRect.anchoredPosition.x;
-        detailHiddenX = detailVisibleX + ItemDetailContainerRect.rect.width + 50f;
-
-        Vector2 startPos = ItemDetailContainerRect.anchoredPosition;
-        startPos.x = detailHiddenX;
-        ItemDetailContainerRect.anchoredPosition = startPos;
+        InitializeDetailPanel();
+        InitializePool();
+        InitializeFixedSlots();
         
-        PoolService.Instance.Preload(slotPrefab, (columns + 10) * columns, (obj) =>
-        {
-            var rect = obj.GetComponent<RectTransform>();
-            rect.sizeDelta = new Vector2(slotSize, slotSize);
-        });
-        
-
         InventoryScrollView.onValueChanged.AddListener(OnScroll);
+    }
+
+    private void Update()
+    {
+        if (isDetailOpen && Input.GetMouseButtonDown(0))
+        {
+            if (!RectTransformUtility.RectangleContainsScreenPoint(ItemDetailContainerRect, Input.mousePosition, null))
+            {
+                HideItemDetail();
+            }
+        }
     }
 
     public void Initialize(NavigationController controller)
@@ -105,168 +114,39 @@ public class InventoryView : MonoBehaviour
         this.controller = controller;
     }
     
-    private void Update()
+    public void UpdateDisplayList(List<SlotKey> newDisplayList)
     {
-        if (isDetailOpen && Input.GetMouseButtonDown(0))
-        {
-            bool isClickInside = RectTransformUtility.RectangleContainsScreenPoint(
-                ItemDetailContainerRect, 
-                Input.mousePosition, 
-                null
-            );
+        currentDisplayList = newDisplayList ?? new List<SlotKey>();
+        totalDisplaySlots = currentDisplayList.Count;
 
-            if (!isClickInside)
-            {
-                HideItemDetail();
-            }
-        }
-    }
-    
-    public void ResizeInventory(int newSize)
-    {
-        totalSlots = RoundUpToColumns(newSize);
+        // 重新计算内容高度
         AdjustContentSize();
-        RefreshAllVisibleSlots();
+        pendingUpdateKeys.Clear(); 
+        Canvas.ForceUpdateCanvases();
+        RefreshAllVisibleSlots(forceRebuild: true);
     }
     
-    
-    private void OnSlotClicked(BackpackSlotUI slotUI)
+    public void UpdateSlotContent(SlotKey key)
     {
-        // 获取物品数据
-        var key = slotUI.SlotKey;
-        if (controller.GetSlotItem(key, out var item) && item != null)
+        if (key.Container == SlotContainerType.Equipment)
         {
-            ShowItemDetail(item);
-        }
-    }
-    
-    private void ShowItemDetail(ItemData item)
-    {
-        // 1. 填充数据
-        if (ItemNameText) ItemNameText.text = item.ItemName ?? "Unknown Item"; // 假设 ItemData 有 Name 字段
-        if (ItemCountText) ItemCountText.text = item.IsStack ? item.ItemCount.ToString() : "1";
-        if (DescriptionText) DescriptionText.text = item.Description ?? ""; // 假设 ItemData 有 Description
-        if (EffectText) EffectText.text = "Effect Info Here"; 
-        
-        if (ItemImage)
-        {
-            ItemImage.sprite = ResourceService.Instance.LoadResource<Sprite>($"Sprites/Items/{item.ItemType}/{item.ItemTemplateId}");
-        }
-
-        RefreshActionButtons(item);
-        
-        ItemDetailContainerRect.DOKill(); 
-        ItemDetailContainerRect.DOAnchorPosX(detailVisibleX, 0.4f).SetEase(Ease.OutQuad);
-        
-        
-        isDetailOpen = true;
-    }
-
-    private void RefreshActionButtons(ItemData item)
-    {
-        List<ItemActionInfo> actions = GetActionsForItem(item);
-        if (actions.Count > actionButtons.Count)
-        {
-            for (int i = actionButtons.Count; i < actions.Count; i++)
-            {
-                var actionButton = PoolService.Instance.Spawn(actionButtonPrefab, ButtonContainerRect).GetComponent<ItemDetailActionButton>();
-                actionButtons.Add(actionButton);
-            }
-        }else if (actions.Count < actionButtons.Count)
-        {
-            for (int i = actions.Count; i < actionButtons.Count; i++)
-            {
-                PoolService.Instance.Despawn(actionButtons[i].gameObject, false);
-            }
-        }
-
-
-        for (int i = 0; i < actionButtons.Count; i++)
-        {
-            actionButtons[i].Initialize(
-                actions[i].ButtonText, 
-                actions[i].OnClick, 
-                actions[i].IsDestructive ? Color.red : Color.white);
-            
-        }
-    }
-
-    private List<ItemActionInfo> GetActionsForItem(ItemData item)
-    {
-        var actions = new List<ItemActionInfo>();
-        switch (item.ItemType)
-        {
-            case ItemType.Consumable:
-                actions.Add(new ItemActionInfo("使用", () => OnUseItem(item)));
-                if (item.ItemCount > 1)
-                {
-                    actions.Add(new ItemActionInfo("全部使用", () => OnUseAllItem(item)));
-                }
-                actions.Add(new ItemActionInfo("丢弃", () => OnDropItem(item), true));
-                break;
+            UpdateFixedSlot(equipSlots, key);
+            return;
         }
         
-        return actions;
-    }
-    
-    private void OnUseItem(ItemData item){}
-    private void OnUseAllItem(ItemData item){}
-    private void OnDropItem(ItemData item){}
-    
-    private void HideItemDetail()
-    {
-        if (!isDetailOpen) return;
-
-        if (ItemDetailContainerRect != null)
+        if (key.Container == SlotContainerType.QuickBar)
         {
-            ItemDetailContainerRect.DOKill();
-            ItemDetailContainerRect.DOAnchorPosX(detailHiddenX, 0.3f).SetEase(Ease.InQuad);
+            UpdateFixedSlot(quickSlots, key);
+            return;
         }
         
-        isDetailOpen = false;
-    }
-
-    public void OpenInventory(int maxSize)
-    {
-        if (maxSize > 0)
+        if (key.Container == SlotContainerType.Inventory)
         {
-            totalSlots = RoundUpToColumns(maxSize);
-            AdjustContentSize();
-            for (int i = 0; i < (columns + 10) * columns; i++)
-            {
-                var go = PoolService.Instance.Spawn(slotPrefab, ContentRect.position, Quaternion.identity);
-                go.transform.SetParent(ContentRect, false);
-                var ui = go.GetComponent<BackpackSlotUI>();
-                go.SetActive(false);
-                freeSlots.Enqueue(ui);
-            }
-            OnScroll(Vector2.zero);
-        }
-    }
-    
-    public void UpdateSlotContent(SlotKey slot)
-    {
-        if (slot.Container != SlotContainerType.Inventory) return;
-
-        if (activeSlots.ContainsKey(slot.Index))
-        {
-            if (pendingUpdateIndices.Add(slot.Index))
+            if (pendingUpdateKeys.Add(key))
             {
                 ScheduleBatchUpdate();
             }
         }
-    }
-
-    public void UpdateSlotsContent(IReadOnlyList<SlotKey> slots)
-    {
-        foreach (var slot in slots)
-        {
-            if (slot.Container == SlotContainerType.Inventory)
-            {
-                pendingUpdateIndices.Add(slot.Index);
-            }
-        }
-        ScheduleBatchUpdate();
     }
     
     private void ScheduleBatchUpdate()
@@ -283,136 +163,359 @@ public class InventoryView : MonoBehaviour
         Canvas.willRenderCanvases -= ProcessPendingUpdates;
         updateScheduled = false;
 
-        updateBatchList.Clear();
-        updateBatchList.AddRange(pendingUpdateIndices);
-        pendingUpdateIndices.Clear();
+        if (pendingUpdateKeys.Count == 0) return;
         
-        foreach (int index in updateBatchList)
+        foreach (var kvp in activeSlots)
         {
-            if (activeSlots.TryGetValue(index, out var slotGo))
+            int uiIndex = kvp.Key;
+            
+            if (uiIndex >= currentDisplayList.Count) continue;
+
+            SlotKey displayingKey = currentDisplayList[uiIndex];
+            if (pendingUpdateKeys.Contains(displayingKey))
             {
-                var key = new SlotKey { Container = SlotContainerType.Inventory, Index = index };
-                slotGo.UpdateSlot(key, controller.GetSlotItem(key, out var item) ? item : null);
+                RefreshSingleSlotUI(kvp.Value, displayingKey);
             }
+        }
+
+        pendingUpdateKeys.Clear();
+    }
+    
+    private void RefreshSingleSlotUI(BackpackSlotUI slotUI, SlotKey key)
+    {
+        if (controller.GetSlotItem(key, out var item))
+        {
+            slotUI.UpdateSlot(key, item);
+        }
+        else
+        {
+            slotUI.UpdateSlot(key, null);
         }
     }
     
-    private int RoundUpToColumns(int count)
+    public void ResetScrollPosition()
     {
-        if (columns <= 0) return count;  
-        return ((count + columns - 1) / columns) * columns;
+        if (InventoryScrollView != null)
+        {
+            InventoryScrollView.verticalNormalizedPosition = 1f;
+        }
     }
-
-    private void AdjustContentSize()
+    
+    public void OnFilterChanged(string name, QualityType quality, ItemType type)
     {
-        int rows = Mathf.CeilToInt((float)totalSlots / columns);
-        float contentHeight = rows * (slotSize + spacing) - spacing;
-        float contentWidth = columns * (slotSize + spacing) - spacing;
-
-        ContentRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, contentHeight);
-        ContentRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, contentWidth);
+        controller?.ApplyFilter(name, quality, type);
     }
+    
 
     private void OnScroll(Vector2 scrollPos)
     {
-        if (!CalculateVisibleRange()) 
-            return;
-        UpdateVisibleSlots();
+        if (totalDisplaySlots == 0) return;
+        
+        if (CalculateVisibleRange()) 
+        {
+            UpdateVisibleSlots();
+        }
     }
-    
-    private int currentFirstVisible;
-    private int currentLastVisible;
-    
+
     private bool CalculateVisibleRange()
     {
         float scrollY = ContentRect.anchoredPosition.y;
         float rowHeight = slotSize + spacing;
 
-        int firstVisibleRow = Mathf.FloorToInt(scrollY / rowHeight);
-
-        float viewportHeight = GetComponent<RectTransform>().rect.height;
+        int firstVisibleRow = Mathf.Max(0, Mathf.FloorToInt(scrollY / rowHeight));
+        float viewportHeight = InventoryScrollView.viewport.rect.height;
         int visibleRowCount = Mathf.CeilToInt(viewportHeight / rowHeight);
-
+        
         int bufferRows = 2;
+        
         int newFirstVisible = Mathf.Max(0, (firstVisibleRow - bufferRows) * columns);
         int newLastVisible = Mathf.Min(
-            totalSlots - 1,
+            totalDisplaySlots - 1,
             (firstVisibleRow + visibleRowCount + bufferRows) * columns + (columns - 1));
 
-        // ✅ 如果范围没变，直接不更新
-        if (newFirstVisible == lastFirstVisible && newLastVisible == lastLastVisible)
+        if (newFirstVisible == currentFirstVisible && newLastVisible == currentLastVisible)
             return false;
 
-        currentFirstVisible = lastFirstVisible = newFirstVisible;
-        currentLastVisible  = lastLastVisible  = newLastVisible;
+        currentFirstVisible = newFirstVisible;
+        currentLastVisible = newLastVisible;
         return true;
     }
 
     private void UpdateVisibleSlots()
     {
-        if (totalSlots == 0) return;
-        
         var toRemove = new List<int>();
         foreach (var kv in activeSlots)
         {
             int index = kv.Key;
-            if (index < currentFirstVisible || index > currentLastVisible)
+            if (index < currentFirstVisible || index > currentLastVisible || index >= totalDisplaySlots)
             {
-                var slotUI = kv.Value;
-                slotUI.gameObject.SetActive(false);
-                slotUI.OnClick -= OnSlotClicked;
-                freeSlots.Enqueue(slotUI);
+                RecycleSlot(kv.Value);
                 toRemove.Add(index);
             }
         }
-
-        foreach (int index in toRemove)
-        {
-            activeSlots.Remove(index);
-        }
+        foreach (int index in toRemove) activeSlots.Remove(index);
+        
         for (int i = currentFirstVisible; i <= currentLastVisible; i++)
         {
-            if (activeSlots.TryGetValue(i, out var slot))
-            {
-                slot.gameObject.SetActive(true);
-                slot.OnClick += OnSlotClicked;
-                continue;
-            }
-
-            if (freeSlots.Count == 0)
-            {
-                var extraGo = PoolService.Instance.Spawn(slotPrefab, ContentRect.position, Quaternion.identity);
-                extraGo.transform.SetParent(ContentRect, false);
-                freeSlots.Enqueue(extraGo.GetComponent<BackpackSlotUI>());
-            }
-
-            var slotUI = freeSlots.Dequeue();
-            var rt = slotUI.Rect;
-
+            if (activeSlots.ContainsKey(i)) continue;
+            var slotUI = SpawnSlot();
             int row = i / columns;
             int column = i % columns;
-            float xPosition = column * (slotSize + spacing);
-            float yPosition = -row * (slotSize + spacing);
-            rt.anchoredPosition = new Vector2(xPosition, yPosition);
-
-            slotUI.gameObject.SetActive(true);
-            slotUI.OnClick += OnSlotClicked;
-            activeSlots.Add(i, slotUI);
+            float x = column * (slotSize + spacing);
+            float y = -row * (slotSize + spacing);
+            slotUI.Rect.anchoredPosition = new Vector2(x, y);
             
-            var key = new SlotKey { Container = SlotContainerType.Inventory, Index = i };
-            slotUI.UpdateSlot(key, controller.GetSlotItem(key, out var item) ? item : null);
+            SlotKey realKey = currentDisplayList[i];
+            
+            controller.GetSlotItem(realKey, out var item);
+            slotUI.UpdateSlot(realKey, item);
+
+            activeSlots.Add(i, slotUI);
         }
     }
-    
-    
-    private void RefreshAllVisibleSlots()
+
+    private void RefreshAllVisibleSlots(bool forceRebuild = false)
     {
-        foreach (var kvp in activeSlots)
+        if (forceRebuild)
         {
-            UpdateSlotContent(new SlotKey { Container = SlotContainerType.Inventory, Index = kvp.Key });
+            foreach (var slot in activeSlots.Values) RecycleSlot(slot);
+            activeSlots.Clear();
+            currentFirstVisible = -1;
+            OnScroll(Vector2.zero);
+        }
+        else
+        {
+            foreach (var kvp in activeSlots)
+            {
+                int i = kvp.Key;
+                if (i < currentDisplayList.Count)
+                {
+                    SlotKey realKey = currentDisplayList[i];
+                    controller.GetSlotItem(realKey, out var item);
+                    kvp.Value.UpdateSlot(realKey, item);
+                }
+            }
+        }
+    }
+
+    private void AdjustContentSize()
+    {
+        int rows = Mathf.CeilToInt((float)totalDisplaySlots / columns);
+        float height = rows * (slotSize + spacing) - spacing;
+        float width = columns * (slotSize + spacing) - spacing;
+
+        ContentRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, Mathf.Max(height, 0));
+        ContentRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
+    }
+    
+
+    private void InitializePool()
+    {
+        PoolService.Instance.Preload(slotPrefab, (columns + 5) * 6, (obj) =>
+        {
+            var rect = obj.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(slotSize, slotSize);
+        });
+    }
+
+    private BackpackSlotUI SpawnSlot()
+    {
+        BackpackSlotUI slotUI;
+        if (freeSlots.Count > 0)
+        {
+            slotUI = freeSlots.Dequeue();
+        }
+        else
+        {
+            var go = PoolService.Instance.Spawn(slotPrefab, ContentRect.position, Quaternion.identity);
+            go.transform.SetParent(ContentRect, false);
+            slotUI = go.GetComponent<BackpackSlotUI>();
+        }
+        
+        slotUI.gameObject.SetActive(true);
+        slotUI.OnClick += OnSlotClicked;
+        slotUI.OnDragStarted += OnSlotBeginDrag;
+        slotUI.OnDragUpdated += OnSlotDrag;
+        slotUI.OnDragEnded   += OnSlotEndDrag;
+        return slotUI;
+    }
+
+    private void RecycleSlot(BackpackSlotUI slotUI)
+    {
+        slotUI.OnClick -= OnSlotClicked;
+        slotUI.OnDragStarted -= OnSlotBeginDrag;
+        slotUI.OnDragUpdated -= OnSlotDrag;
+        slotUI.OnDragEnded   -= OnSlotEndDrag;
+        slotUI.gameObject.SetActive(false);
+        freeSlots.Enqueue(slotUI);
+    }
+    
+    private void OnSlotDrag(BackpackSlotUI slot, PointerEventData eventData)
+    {
+        UpdateDragIconPosition(eventData);
+    }
+
+    private void OnSlotEndDrag(BackpackSlotUI slot, PointerEventData eventData)
+    {
+        DragIcon.gameObject.SetActive(false);
+    }
+
+    private void OnSlotBeginDrag(BackpackSlotUI slotUI, PointerEventData eventData)
+    {
+        DragIcon.sprite = slotUI.GetCurrentIcon();
+        DragIcon.gameObject.SetActive(true);
+        UpdateDragIconPosition(eventData);
+    }
+    
+    
+    private void UpdateDragIconPosition(PointerEventData eventData)
+    {
+        if (DragIconRect == null) return;
+        
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            (RectTransform)DragIconRect.parent, 
+            eventData.position, 
+            null,
+            out var localPos
+        );
+        
+        DragIconRect.anchoredPosition = localPos;
+    }
+    
+    private void InitializeDetailPanel()
+    {
+        if (ItemDetailContainerRect == null) return;
+        
+        detailVisibleX = ItemDetailContainerRect.anchoredPosition.x;
+        detailHiddenX = detailVisibleX + ItemDetailContainerRect.rect.width + 50f;
+
+        var pos = ItemDetailContainerRect.anchoredPosition;
+        pos.x = detailHiddenX;
+        ItemDetailContainerRect.anchoredPosition = pos;
+    }
+
+    private void OnSlotClicked(BackpackSlotUI slotUI)
+    {
+        if (controller.GetSlotItem(slotUI.SlotKey, out var item) && item != null)
+        {
+            ShowItemDetail(slotUI.SlotKey, item);
+        }
+        else
+        {
+            HideItemDetail();
+        }
+    }
+
+    private void ShowItemDetail(SlotKey slot, ItemData item)
+    {
+        if (ItemNameText) ItemNameText.text = item.ItemName ?? "Unknown";
+        if (ItemCountText) ItemCountText.text = $"品质: {item.ItemCount}";
+        if (DescriptionText) DescriptionText.text = item.Description ?? "";
+        
+        if (EffectText)
+        {
+            EffectText.text = "";
+            if (item is EquipData equip && equip.BaseAttributes != null)
+            {
+                StringBuilder sb = new StringBuilder();
+                foreach (var attr in equip.BaseAttributes)
+                {
+                    sb.AppendLine($"+{attr.Key}: {attr.Value}");
+                }
+                EffectText.text = sb.ToString();
+            }
+        }
+
+        // 填充图标
+        if (ItemImage)
+        {
+            // 注意：这里需要根据你的资源加载逻辑修改
+            // ItemImage.sprite = ...
+        }
+
+        RefreshActionButtons(slot, item);
+        
+        ItemDetailContainerRect.DOKill();
+        ItemDetailContainerRect.DOAnchorPosX(detailVisibleX, 0.3f).SetEase(Ease.OutQuad);
+        isDetailOpen = true;
+    }
+
+    private void HideItemDetail()
+    {
+        if (!isDetailOpen) return;
+        ItemDetailContainerRect.DOKill();
+        ItemDetailContainerRect.DOAnchorPosX(detailHiddenX, 0.2f).SetEase(Ease.InQuad);
+        isDetailOpen = false;
+    }
+
+    private void RefreshActionButtons(SlotKey slot, ItemData item)
+    {
+        var actions = controller.GetActionsForItem(slot, item);
+        
+        while (actionButtons.Count < actions.Count)
+        {
+            var btn = PoolService.Instance.Spawn(actionButtonPrefab, ButtonContainerRect).GetComponent<ItemDetailActionButton>();
+            actionButtons.Add(btn);
+        }
+        
+        for (int i = actions.Count; i < actionButtons.Count; i++)
+        {
+            actionButtons[i].gameObject.SetActive(false);
+        }
+        
+        for (int i = 0; i < actions.Count; i++)
+        {
+            var btn = actionButtons[i];
+            btn.gameObject.SetActive(true);
+            var info = actions[i];
+            btn.Initialize(info.ButtonText, info.OnClick, info.IsDestructive ? Color.red : Color.white);
         }
     }
     
     
+
+    private void InitializeFixedSlots()
+    {
+        if (EquipContainerRect != null)
+        {
+            for (int i = 0; i < EquipContainerRect.childCount; i++)
+            {
+                if (i >= equipSlots.Length) break;
+                var slot = EquipContainerRect.GetChild(i).GetComponent<BackpackSlotUI>();
+                if (slot != null)
+                {
+                    slot.SlotKey = new SlotKey(SlotContainerType.Equipment, i);
+                    slot.OnClick += OnSlotClicked;
+                    equipSlots[i] = slot;
+                }
+            }
+        }
+        
+        if (QuickBarContainerRect != null)
+        {
+            for (int i = 0; i < QuickBarContainerRect.childCount; i++)
+            {
+                if (i >= quickSlots.Length) break;
+                var slot = QuickBarContainerRect.GetChild(i).GetComponent<BackpackSlotUI>();
+                if (slot != null)
+                {
+                    slot.SlotKey = new SlotKey(SlotContainerType.QuickBar, i);
+                    slot.OnClick += OnSlotClicked;
+                    quickSlots[i] = slot;
+                }
+            }
+        }
+    }
+
+    private void UpdateFixedSlot(BackpackSlotUI[] slotsArray, SlotKey key)
+    {
+        if (key.Index < 0 || key.Index >= slotsArray.Length) return;
+        
+        var slotUI = slotsArray[key.Index];
+        if (slotUI == null) return;
+        
+        controller.GetSlotItem(key, out var item);
+        slotUI.UpdateSlot(key, item);
+    }
     
 }
